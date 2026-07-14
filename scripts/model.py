@@ -519,11 +519,14 @@ class NetworkEloReplay:
                 self.team_matches[index].append(team_match)
                 if post is not None:
                     point = {
+                        "id": match_id,
                         "date": match.date_text,
                         "rating": post["rating"],
                         "mean": post["mean"],
                         "se": post["se"],
                         "latent": post["latent"],
+                        "matches": int(self.games[index]),
+                        "form": list(self.stats[index]["last5"]),
                         "opponent": self.name(self.teams[opponent]),
                         "score": f"{gf}-{ga}",
                     }

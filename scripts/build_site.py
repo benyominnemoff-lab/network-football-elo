@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -109,6 +109,57 @@ def build_fixtures(source: Path, output: Any) -> dict[str, Any]:
     }
 
 
+def build_historical_rankings(data: Path, output: Any) -> None:
+    """Write independently loadable end-of-day ranking events for each year."""
+    names = {team["code"]: team["nation"] for team in output.summary["teams"]}
+    events_by_year: dict[int, list[dict[str, Any]]] = {}
+    for code, page in output.team_pages.items():
+        for point in page["history"]:
+            year = int(point["date"][:4])
+            events_by_year.setdefault(year, []).append(
+                {
+                    "id": point["id"], "date": point["date"], "code": code,
+                    "nation": names[code], "rating": point["rating"],
+                    "mean": point["mean"], "se": point["se"],
+                    "matches": point["matches"], "form": point["form"],
+                }
+            )
+
+    matchdays_by_year: dict[int, set[str]] = {}
+    world_cup_days: dict[int, list[str]] = {}
+    for match in output.matches:
+        year = int(match["year"])
+        matchdays_by_year.setdefault(year, set()).add(match["date"])
+        if match["t"] in {"World Cup", "FIFA World Cup"}:
+            world_cup_days.setdefault(year, []).append(match["date"])
+
+    first_date, last_date = output.matches[0]["date"], output.matches[-1]["date"]
+    opening: dict[str, dict[str, Any]] = {}
+    years = []
+    for year in range(int(first_date[:4]), int(last_date[:4]) + 1):
+        rows = sorted(events_by_year.get(year, []), key=lambda row: (row["date"], row["id"], row["code"]))
+        filename = f"{year}.json"
+        write_json(data / "rankings-history" / filename, {
+            "year": year, "opening": list(opening.values()), "events": rows,
+            "matchdays": sorted(matchdays_by_year.get(year, set())),
+        })
+        years.append({"year": year, "file": filename, "events": len(rows)})
+        for row in rows:
+            opening[row["code"]] = {key: value for key, value in row.items() if key != "id"}
+
+    world_cups = []
+    for year, days in sorted(world_cup_days.items(), reverse=True):
+        first, last = min(days), max(days)
+        world_cups.append({
+            "year": year,
+            "before": (date.fromisoformat(first) - timedelta(days=1)).isoformat(),
+            "after": last,
+        })
+    write_json(data / "rankings-history" / "index.json", {
+        "first": first_date, "last": last_date, "years": years, "world_cups": world_cups,
+    })
+
+
 def main() -> None:
     args = parse_args()
     output = run_replay(args.source, args.config)
@@ -153,6 +204,8 @@ def main() -> None:
 
     for code, page in output.team_pages.items():
         write_json(data / "teams" / f"{code}.json", page)
+
+    build_historical_rankings(data, output)
 
     tournament_counts = Counter(match["tc"] for match in output.matches)
     write_json(

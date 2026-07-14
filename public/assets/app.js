@@ -78,6 +78,11 @@
     menuButton.setAttribute("aria-expanded", "false");
   }
 
+  const isoDate = (value) => {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return Number.isNaN(parsed.valueOf()) ? "" : parsed.toISOString().slice(0, 10);
+  };
+
   function loading(label = "Loading rating history…") {
     content.innerHTML = `<div class="loading-shell" role="status"><span class="spinner" aria-hidden="true"></span><p>${escapeHTML(label)}</p></div>`;
   }
@@ -172,7 +177,7 @@
     setTitle("Rankings");
     content.innerHTML = `
       <div class="page">
-        <header class="page-heading"><div><p class="eyebrow">Current international teams</p><h1>Rankings</h1></div><p class="lede">The rating combines estimated playing strength with an allowance for uncertainty. Teams with results against a broad range of opponents can therefore be assessed more confidently.</p></header>
+        <header class="page-heading"><div><p class="eyebrow">Current international teams</p><h1>Rankings</h1></div><p class="lede">The rating combines estimated playing strength with an allowance for uncertainty. Teams with results against a broad range of opponents can therefore be assessed more confidently. <a href="#/history">Choose a historical date →</a></p></header>
         <div class="toolbar">
           <div class="field field-grow"><label for="ranking-search">Find a team</label><input id="ranking-search" type="search" placeholder="Spain, Argentina, Japan…"></div>
           <div class="field"><label for="ranking-sort">Sort</label><select id="ranking-sort"><option value="rating">Rating</option><option value="mean">Model strength</option><option value="matches">Matches played</option><option value="name">Name</option></select></div>
@@ -205,6 +210,81 @@
       update();
     }));
     update();
+  }
+
+  function historicalRankingsTable(items) {
+    if (!items.length) return `<div class="empty"><h2>No eligible rankings yet</h2><p>Teams enter the table after their 30th recorded match.</p></div>`;
+    return `<div class="table-hint" aria-hidden="true">Swipe to see more →</div><div class="table-shell"><table>
+      <thead><tr><th class="numeric">Rank</th><th>Team</th><th class="numeric">Rating</th><th class="numeric hide-mobile">Model strength</th><th class="numeric hide-mobile">Matches</th><th>Recent form</th><th class="hide-mobile">Last match</th></tr></thead>
+      <tbody>${items.map((team, index) => `<tr><td class="rank-cell numeric">${index + 1}</td><td>${teamLink(team.code, team.nation)}</td>
+        <td class="numeric"><span class="rating-main">${rating(team.rating)}</span><span class="rating-sub">uncertainty ${rating(team.se)}</span></td>
+        <td class="numeric hide-mobile">${rating(team.mean)}</td><td class="numeric hide-mobile">${number(team.matches)}</td>
+        <td>${formHTML(team.form || [])}</td><td class="hide-mobile">${validDate(team.date)}</td></tr>`).join("")}</tbody></table></div>`;
+  }
+
+  async function renderHistory(route) {
+    setTitle("Historical rankings");
+    loading("Loading historical rankings…");
+    const index = await getJSON("data/rankings-history/index.json");
+    const requested = isoDate(route.query.get("date")) || index.last;
+    const selected = requested < index.first ? index.first : requested > index.last ? index.last : requested;
+    content.innerHTML = `<div class="page">
+      <header class="page-heading"><div><p class="eyebrow">Rankings on any date</p><h1>Historical rankings</h1></div><p class="lede">Reconstructed with the current model after every match played on or before the selected date. These are present-day estimates of the past, not tables published at the time.</p></header>
+      <div class="toolbar history-toolbar">
+        <div class="field"><label for="history-date">Ranking date</label><input id="history-date" type="date" min="${index.first}" max="${index.last}" value="${selected}"></div>
+        <button class="button" type="button" id="history-year-start">Start of year</button><button class="button" type="button" id="history-prev">← Previous matchday</button><button class="button" type="button" id="history-next">Next matchday →</button>
+        <div class="field field-grow"><label for="history-world-cup">World Cup moments</label><select id="history-world-cup"><option value="">Choose a tournament…</option>${index.world_cups.flatMap((cup) => [`<option value="${cup.before}">Before ${cup.year} World Cup</option>`, `<option value="${cup.after}">After ${cup.year} World Cup</option>`]).join("")}</select></div>
+      </div>
+      <div class="record-note"><strong id="history-count">—</strong><div><b id="history-label">Eligible teams</b><br>At least 30 matches and an appearance in the selected year or preceding four calendar years.</div></div>
+      <div class="toolbar compact-toolbar"><div class="field field-grow"><label for="history-search">Find a team</label><input id="history-search" type="search" placeholder="Brazil, Hungary, Morocco…"></div><div class="field"><label for="history-sort">Sort</label><select id="history-sort"><option value="rating">Rating</option><option value="mean">Model strength</option><option value="matches">Matches played</option><option value="name">Name</option></select></div></div>
+      <div id="history-table"></div></div>`;
+
+    let teams = [];
+    const dateInput = document.getElementById("history-date");
+    const table = document.getElementById("history-table");
+    const updateTable = () => {
+      const query = document.getElementById("history-search").value.trim().toLocaleLowerCase();
+      const sort = document.getElementById("history-sort").value;
+      const visible = teams.filter((team) => team.nation.toLocaleLowerCase().includes(query));
+      visible.sort((a, b) => sort === "name" ? a.nation.localeCompare(b.nation) : (b[sort] ?? -Infinity) - (a[sort] ?? -Infinity) || a.nation.localeCompare(b.nation));
+      table.innerHTML = historicalRankingsTable(visible);
+    };
+    const loadDate = async (value) => {
+      const chosen = value < index.first ? index.first : value > index.last ? index.last : value;
+      dateInput.value = chosen;
+      history.replaceState(null, "", `#/history?date=${chosen}`);
+      table.innerHTML = `<div class="loading-shell"><span class="spinner"></span><p>Loading ${escapeHTML(validDate(chosen))}…</p></div>`;
+      const payload = await getJSON(`data/rankings-history/${chosen.slice(0, 4)}.json`);
+      const state = new Map(payload.opening.map((team) => [team.code, team]));
+      payload.events.forEach((event) => { if (event.date <= chosen) state.set(event.code, event); });
+      const year = Number(chosen.slice(0, 4));
+      teams = [...state.values()].filter((team) => year - Number(team.date.slice(0, 4)) <= 4);
+      teams.sort((a, b) => b.rating - a.rating || a.nation.localeCompare(b.nation));
+      document.getElementById("history-count").textContent = number(teams.length);
+      document.getElementById("history-label").textContent = `Eligible teams on ${validDate(chosen)}`;
+      updateTable();
+    };
+    const adjacentMatchday = async (direction) => {
+      let chosen = dateInput.value;
+      let year = Number(chosen.slice(0, 4));
+      const firstYear = Number(index.first.slice(0, 4));
+      const lastYear = Number(index.last.slice(0, 4));
+      while (year >= firstYear && year <= lastYear) {
+        const payload = await getJSON(`data/rankings-history/${year}.json`);
+        const candidates = payload.matchdays.filter((day) => direction < 0 ? day < chosen : day > chosen);
+        if (candidates.length) return loadDate(direction < 0 ? candidates[candidates.length - 1] : candidates[0]);
+        year += direction;
+        chosen = direction < 0 ? `${year + 1}-01-01` : `${year - 1}-12-31`;
+      }
+    };
+    dateInput.addEventListener("change", () => loadDate(dateInput.value));
+    document.getElementById("history-year-start").addEventListener("click", () => loadDate(`${dateInput.value.slice(0, 4)}-01-01`));
+    document.getElementById("history-prev").addEventListener("click", () => adjacentMatchday(-1));
+    document.getElementById("history-next").addEventListener("click", () => adjacentMatchday(1));
+    document.getElementById("history-world-cup").addEventListener("change", (event) => { if (event.target.value) loadDate(event.target.value); });
+    document.getElementById("history-search").addEventListener("input", updateTable);
+    document.getElementById("history-sort").addEventListener("change", updateTable);
+    await loadDate(selected);
   }
 
   async function renderMatches(route) {
@@ -344,10 +424,10 @@
       <div class="page">
         <header class="page-heading"><div><p class="eyebrow">Scheduled senior internationals</p><h1>Upcoming matches</h1></div><p class="lede">Future fixtures from the open international-results feed, paired with probabilities from the current ratings. W and L are from the perspective of the first-listed team. Kickoff times are not available from the current fixture source.</p></header>
         <div class="record-note"><strong>${number(fixtures.length)}</strong><div><b>Known future pairings.</b> Placeholder knockout matches remain hidden until both teams are identified. Feed checked ${validTimestamp(payload.checked_at)}.</div></div>
-        ${fixtures.length ? `<div class="table-shell"><table><thead><tr><th>Date</th><th>Match</th><th class="numeric">Combined rating</th><th>W / D / L</th><th class="hide-mobile">Competition</th><th class="hide-mobile">Location</th></tr></thead><tbody>${fixtures.map((fixture) => `<tr>
+        ${fixtures.length ? `<div class="table-shell fixture-table"><table><thead><tr><th>Date</th><th>Match</th><th class="numeric">Combined rating</th><th>W / D / L</th><th class="hide-mobile">Competition</th><th class="hide-mobile">Location</th></tr></thead><tbody>${fixtures.map((fixture) => `<tr>
           <td>${validDate(fixture.date)}</td>
-          <td>${teamLink(fixture.team1_code, fixture.team1_name)} <span class="muted">v</span> ${teamLink(fixture.team2_code, fixture.team2_name)}<span class="rating-sub">${rating(fixture.rating1)} + ${rating(fixture.rating2)}</span></td>
-          <td class="numeric"><span class="rating-main">${rating(fixture.combined_rating)}</span></td>
+          <td data-label="Match">${teamLink(fixture.team1_code, fixture.team1_name)} <span class="muted">v</span> ${teamLink(fixture.team2_code, fixture.team2_name)}<span class="rating-sub">${rating(fixture.rating1)} + ${rating(fixture.rating2)}</span></td>
+          <td class="numeric" data-label="Combined"><span class="rating-main">${rating(fixture.combined_rating)}</span></td>
           <td>${probabilityHTML(fixture.probabilities)}</td>
           <td class="hide-mobile">${escapeHTML(fixture.tournament_name)}</td>
           <td class="hide-mobile">${escapeHTML([fixture.city, fixture.country].filter(Boolean).join(", "))}${fixture.neutral ? `<span class="rating-sub">neutral venue</span>` : ""}</td>
@@ -593,6 +673,7 @@
       switch (current.section) {
         case "home": renderHome(); break;
         case "rankings": renderRankings(); break;
+        case "history": await renderHistory(current); break;
         case "matches": await renderMatches(current); break;
         case "fixtures": await renderFixtures(); break;
         case "records": renderRecords(); break;
@@ -613,6 +694,12 @@
     const open = !nav.classList.contains("is-open");
     nav.classList.toggle("is-open", open);
     menuButton.setAttribute("aria-expanded", String(open));
+  });
+  document.addEventListener("click", (event) => {
+    if (nav.classList.contains("is-open") && !nav.contains(event.target) && event.target !== menuButton) {
+      nav.classList.remove("is-open");
+      menuButton.setAttribute("aria-expanded", "false");
+    }
   });
   window.addEventListener("hashchange", route);
   route();

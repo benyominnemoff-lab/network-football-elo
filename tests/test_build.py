@@ -119,6 +119,17 @@ class StaticBuildTests(unittest.TestCase):
         self.assertIn("index.html", manifest["files"])
         self.assertIn("data/summary.json", manifest["files"])
 
+    def test_historical_rankings_are_chunked_by_year(self) -> None:
+        index = json.loads((self.data / "rankings-history" / "index.json").read_text(encoding="utf-8"))
+        self.assertEqual(index["first"][:4], str(index["years"][0]["year"]))
+        self.assertEqual(index["last"][:4], str(index["years"][-1]["year"]))
+        self.assertGreaterEqual(len(index["world_cups"]), 20)
+        latest = json.loads((self.data / "rankings-history" / index["years"][-1]["file"]).read_text(encoding="utf-8"))
+        self.assertEqual(latest["year"], int(index["last"][:4]))
+        self.assertTrue(latest["opening"])
+        self.assertEqual(latest["events"], sorted(latest["events"], key=lambda row: (row["date"], row["id"], row["code"])))
+        self.assertTrue(all(row["matches"] >= 30 for row in latest["opening"] + latest["events"]))
+
     def test_public_metadata_and_discovery_files(self) -> None:
         public = ROOT / "public"
         html = (public / "index.html").read_text(encoding="utf-8")
