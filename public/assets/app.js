@@ -94,6 +94,7 @@
           <p class="lede">Every senior men's international in the source ledger, replayed with the best held-out model from the Great Elo Bake-off. Full covariance stops isolated match clusters pretending to be global certainty.</p>
           <div class="hero-actions">
             <a class="button button-primary" href="#/rankings">See the rankings</a>
+            <a class="button" href="#/fixtures">Upcoming matches</a>
             <a class="button" href="#/predict">Try a matchup</a>
           </div>
           <div class="hero-meta">
@@ -322,6 +323,26 @@
     update();
   }
 
+  async function renderFixtures() {
+    setTitle("Upcoming matches");
+    loading("Loading upcoming internationals…");
+    const payload = await getJSON("data/fixtures.json");
+    const fixtures = payload.fixtures || [];
+    content.innerHTML = `
+      <div class="page">
+        <header class="page-heading"><div><p class="eyebrow">Scheduled senior internationals</p><h1>Upcoming matches</h1></div><p class="lede">Future fixtures from the open international-results feed, paired with probabilities from the current network state. W and L are from the perspective of the first-listed team.</p></header>
+        <div class="record-note"><strong>${number(fixtures.length)}</strong><div><b>Known future pairings.</b> Placeholder knockout matches remain hidden until both teams are identified. Feed checked ${payload.checked_at ? validDate(payload.checked_at.slice(0, 10)) : "—"}.</div></div>
+        ${fixtures.length ? `<div class="table-shell"><table><thead><tr><th>Date</th><th>Match</th><th class="numeric">Combined NR</th><th>W / D / L</th><th class="hide-mobile">Competition</th><th class="hide-mobile">Location</th></tr></thead><tbody>${fixtures.map((fixture) => `<tr>
+          <td>${validDate(fixture.date)}</td>
+          <td>${teamLink(fixture.team1_code, fixture.team1_name)} <span class="muted">v</span> ${teamLink(fixture.team2_code, fixture.team2_name)}<span class="rating-sub">${rating(fixture.rating1)} + ${rating(fixture.rating2)}</span></td>
+          <td class="numeric"><span class="rating-main">${rating(fixture.combined_rating)}</span></td>
+          <td>${probabilityHTML(fixture.probabilities)}</td>
+          <td class="hide-mobile">${escapeHTML(fixture.tournament_name)}</td>
+          <td class="hide-mobile">${escapeHTML([fixture.city, fixture.country].filter(Boolean).join(", "))}${fixture.neutral ? `<span class="rating-sub">neutral venue</span>` : ""}</td>
+        </tr>`).join("")}</tbody></table></div>` : `<div class="empty"><h2>No identified fixtures in the feed.</h2><p>Future knockout placeholders appear after both participants are known.</p></div>`}
+      </div>`;
+  }
+
   async function renderPredict() {
     setTitle("Predict a match");
     loading("Loading the current covariance state…");
@@ -510,14 +531,14 @@
     content.innerHTML = `
       <div class="page page-narrow">
         <p class="eyebrow">Provenance · automation · limitations</p><h1>About</h1>
-        <p class="lede">This is an independent, reproducible rating site built from public World Football Elo Ratings TSV ledgers and a frozen model selected in the Great Elo Bake-off.</p>
+        <p class="lede">This is an independent, reproducible rating site built from a validated World Football Elo Ratings historical snapshot, a daily open-results supplement, and the frozen model selected in the Great Elo Bake-off.</p>
         <section class="section split">
           <div class="panel"><p class="eyebrow">Current build</p><h2>${validDate(summary.meta.results_through)}</h2><p>${number(summary.meta.matches)} unique matches across ${number(summary.meta.teams)} canonical successor histories.</p><p class="muted small">Source check: ${update.source_checked_at ? validDate(update.source_checked_at.slice(0, 10)) : "bundled release snapshot"}<br>Mode: ${escapeHTML(update.mode || "bundled snapshot")}<br>Changed pages: ${number(update.pages_changed || 0)}</p></div>
-          <div class="panel panel-dark"><p class="eyebrow">Automatic update</p><h2>Fail closed, keep the last good site.</h2><p class="muted">The scheduled workflow checks the current ranking and reference TSVs daily, refreshes changed team pages, performs a full periodic reconciliation, validates field counts and source size, replays all history, runs tests, then deploys the static artifact.</p></div>
+          <div class="panel panel-dark"><p class="eyebrow">Automatic update</p><h2>Fail closed, keep the last good site.</h2><p class="muted">The scheduled workflow retrieves the GitHub-hosted open results feed daily, validates its schema, size and team aliases, admits completed matches after the historical snapshot, refreshes future fixtures, replays all history, runs tests, then deploys the static artifact.</p></div>
         </section>
         <article class="section prose">
           <h2>Source and attribution</h2>
-          <p>Historical result rows and reference labels come from <a href="https://eloratings.net/" rel="external">World Football Elo Ratings</a>. Its published baseline formula is described on the <a href="https://eloratings.net/about" rel="external">methodology page</a>. This project neither republishes that site's interface nor uses its JavaScript; it parses the public headerless TSV ledgers and applies a separately developed model.</p>
+          <p>The frozen historical ledger and reference labels come from <a href="https://eloratings.net/" rel="external">World Football Elo Ratings</a>. New results and future fixtures come from the CC0-licensed <a href="https://github.com/martj42/international_results" rel="external">international_results dataset</a>, which GitHub Actions can retrieve without an interactive browser challenge. Supplemental results are admitted only after the validated TSV snapshot date, so the historical replay is never silently replaced.</p>
           <h2>What updates automatically</h2>
           <p>New and corrected source results are incorporated. The full state is replayed because debut priors, covariance, margin environment and opponent breadth are path-dependent. The fitted constants do <em>not</em> change during a routine update. A future re-fit must be a separate, reviewed bake-off.</p>
           <h2>What the model does not know</h2>
@@ -542,6 +563,7 @@
         case "home": renderHome(); break;
         case "rankings": renderRankings(); break;
         case "matches": await renderMatches(current); break;
+        case "fixtures": await renderFixtures(); break;
         case "records": renderRecords(); break;
         case "predict": await renderPredict(); break;
         case "team": current.value ? await renderTeam(current.value) : renderNotFound(); break;

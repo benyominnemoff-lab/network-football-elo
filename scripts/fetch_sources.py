@@ -298,4 +298,9 @@ def math_floor(value: float) -> int:
 
 
 if __name__ == "__main__":
-    main()
+    # The first-party TSV host introduced an interactive verification page that
+    # GitHub Actions cannot satisfy. Daily production updates therefore use the
+    # GitHub-hosted CC0 supplement while retaining the validated TSV snapshot.
+    from open_results import main as open_results_main
+
+    open_results_main()

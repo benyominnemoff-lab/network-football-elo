@@ -5,13 +5,14 @@ import json
 import math
 from pathlib import Path
 import sys
+from tempfile import TemporaryDirectory
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from ledger import read_matches, read_successors  # noqa: E402
+from ledger import read_matches, read_successors, read_supplemental_matches  # noqa: E402
 from model import three_way_probabilities  # noqa: E402
 
 
@@ -25,6 +26,7 @@ class StaticBuildTests(unittest.TestCase):
         cls.data = ROOT / "public" / "data"
         cls.summary = json.loads((cls.data / "summary.json").read_text(encoding="utf-8"))
         cls.state = json.loads((cls.data / "state.json").read_text(encoding="utf-8"))
+        cls.fixtures = json.loads((cls.data / "fixtures.json").read_text(encoding="utf-8"))
 
     def test_source_ledger_is_complete_and_ordered(self) -> None:
         successors = read_successors(ROOT / "source" / "teams.tsv")
@@ -73,6 +75,39 @@ class StaticBuildTests(unittest.TestCase):
         self.assertAlmostEqual(float(first[1]), float(second[1]), places=12)
         self.assertAlmostEqual(float(first[2]), float(second[0]), places=12)
         self.assertAlmostEqual(float(first.sum()), 1.0, places=12)
+
+    def test_upcoming_fixtures_are_sorted_and_probabilistic(self) -> None:
+        fixtures = self.fixtures["fixtures"]
+        self.assertGreaterEqual(len(fixtures), 2)
+        self.assertEqual(
+            fixtures,
+            sorted(fixtures, key=lambda item: (item["date"], item["team1_name"])),
+        )
+        for fixture in fixtures:
+            self.assertGreater(fixture["date"], self.summary["meta"]["results_through"])
+            self.assertAlmostEqual(sum(fixture["probabilities"]), 1.0, places=7)
+            self.assertIn(fixture["team1_code"], self.state["codes"])
+            self.assertIn(fixture["team2_code"], self.state["codes"])
+
+    def test_supplemental_result_schema_reconstructs_match(self) -> None:
+        with TemporaryDirectory() as temporary:
+            path = Path(temporary) / "supplement.csv"
+            path.write_text(
+                "date,team1_code,team2_code,team1_name,team2_name,score1,score2,"
+                "tournament_code,tournament_name,city,country,neutral,home_sign\n"
+                "2026-07-14,FR,ES,France,Spain,1,2,WC,FIFA World Cup,Arlington,"
+                "United States,True,0\n",
+                encoding="utf-8",
+            )
+            matches = read_supplemental_matches(
+                path,
+                read_successors(ROOT / "source" / "teams.tsv"),
+            )
+            self.assertEqual(len(matches), 1)
+            self.assertEqual(matches[0].date_text, "2026-07-14")
+            self.assertEqual((matches[0].team1, matches[0].team2), ("FR", "ES"))
+            self.assertEqual((matches[0].score1, matches[0].score2), (1, 2))
+            self.assertEqual(matches[0].home_sign, 0)
 
     def test_entry_html_and_manifest(self) -> None:
         html = (ROOT / "public" / "index.html").read_text(encoding="utf-8")

@@ -186,9 +186,18 @@ class NetworkEloReplay:
         self.source = source
         self.config = config
         self.successors = read_successors(source / "teams.tsv")
-        self.matches = read_matches(source / "elo_pages", self.successors)
+        self.matches = read_matches(
+            source / "elo_pages",
+            self.successors,
+            source / "supplemental_results.csv",
+        )
         self.team_names = read_dictionary(source / "en.teams.tsv", skip_locations=True)
         self.tournament_names = read_dictionary(source / "en.tournaments.tsv")
+        supplemental_tournaments = source / "supplemental_tournaments.json"
+        if supplemental_tournaments.exists():
+            self.tournament_names.update(
+                json.loads(supplemental_tournaments.read_text(encoding="utf-8"))
+            )
         metadata = json.loads((config / "elo_matches.json").read_text(encoding="utf-8"))
         self.levels: dict[str, int] = {
             str(code): int(level)
@@ -604,6 +613,10 @@ class NetworkEloReplay:
         for path in sorted((self.source / "elo_pages").glob("*.tsv")):
             source_hash.update(path.name.encode("utf-8"))
             source_hash.update(path.read_bytes())
+        supplemental = self.source / "supplemental_results.csv"
+        if supplemental.exists():
+            source_hash.update(supplemental.name.encode("utf-8"))
+            source_hash.update(supplemental.read_bytes())
 
         summary = {
             "meta": {
@@ -614,7 +627,11 @@ class NetworkEloReplay:
                 "minimum_record_matches": MINIMUM_RECORD_MATCHES,
                 "source_sha256": source_hash.hexdigest(),
                 "confidence": CONFIDENCE,
-                "generated_from_first_party_tsv": True,
+                "generated_from_first_party_tsv": not bool(
+                    (self.source / "supplemental_results.csv").exists()
+                    and (self.source / "supplemental_results.csv").stat().st_size > 200
+                ),
+                "source_model": "validated WFE TSV snapshot plus CC0 open-results supplement",
             },
             "current": current,
             "teams": all_teams,

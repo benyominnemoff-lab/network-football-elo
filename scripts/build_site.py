@@ -12,7 +12,12 @@ from pathlib import Path
 import shutil
 from typing import Any
 
-from model import run_replay
+from model import (
+    calibration_scale,
+    home_advantage,
+    run_replay,
+    three_way_probabilities,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -49,6 +54,61 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def build_fixtures(source: Path, output: Any) -> dict[str, Any]:
+    path = source / "upcoming_fixtures.json"
+    if not path.exists():
+        return {"checked_at": None, "source": None, "fixtures": []}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    state = output.state
+    index = {code: position for position, code in enumerate(state["codes"])}
+    count = len(state["codes"])
+    covariance = state["covariance"]
+    current = {team["code"]: team for team in output.summary["teams"]}
+    fixtures = []
+    for fixture in payload.get("fixtures", []):
+        first = fixture.get("team1_code")
+        second = fixture.get("team2_code")
+        if first not in index or second not in index:
+            continue
+        i, j = index[first], index[second]
+        year = int(str(fixture["date"])[:4])
+        scale = calibration_scale(year)
+        difference = scale * (float(state["means"][i]) - float(state["means"][j]))
+        difference += home_advantage(year) * int(fixture.get("home_sign", 0))
+        variance = max(
+            0.0,
+            float(
+                covariance[i * count + i]
+                + covariance[j * count + j]
+                - 2.0 * covariance[i * count + j]
+            ),
+        )
+        probabilities = three_way_probabilities(
+            difference,
+            variance,
+            year,
+            friendly=fixture.get("tournament_code") == "F",
+        )
+        first_team = current[first]
+        second_team = current[second]
+        fixtures.append(
+            {
+                **fixture,
+                "team1_name": first_team["nation"],
+                "team2_name": second_team["nation"],
+                "rating1": first_team["rating"],
+                "rating2": second_team["rating"],
+                "combined_rating": first_team["rating"] + second_team["rating"],
+                "probabilities": probabilities.tolist(),
+            }
+        )
+    return {
+        "checked_at": payload.get("checked_at"),
+        "source": payload.get("source"),
+        "fixtures": fixtures,
+    }
+
+
 def main() -> None:
     args = parse_args()
     output = run_replay(args.source, args.config)
@@ -69,6 +129,7 @@ def main() -> None:
 
     write_json(data / "summary.json", output.summary)
     write_json(data / "state.json", output.state)
+    write_json(data / "fixtures.json", build_fixtures(args.source, output))
 
     decades: dict[int, list[dict[str, Any]]] = {}
     for match in output.matches:

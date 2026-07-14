@@ -1,10 +1,11 @@
 # Network Football Elo
 
-A static, searchable international-football rating site built from the public
-World Football Elo Ratings TSV ledger and the frozen winner of the Great Elo
-Bake-off. It includes current rankings, every historical source result, one
-all-time peak per nation, the highest-rated match instances, team histories,
-and a current-state probability calculator.
+A static, searchable international-football rating site built from a validated
+World Football Elo Ratings TSV snapshot, a current CC0 results supplement, and
+the frozen winner of the Great Elo Bake-off. It includes current rankings,
+historical results, upcoming fixtures with probabilities, one all-time peak per
+nation, the highest-rated match instances, team histories, and a current-state
+probability calculator.
 
 The predictive state is a full-covariance dynamic Gaussian opponent network.
 The familiar base-10 Elo curve remains the observation link; uncertainty,
@@ -16,20 +17,15 @@ friendly/competitive probability temperatures are all replayed chronologically.
 The Pages workflow runs every day at 04:17 UTC and can also be run manually.
 It:
 
-1. validates the public ranking and reference TSVs;
-2. refreshes team pages whose published rating changed;
-3. performs a full active-team reconciliation on Sundays;
-4. refuses empty, malformed or implausibly truncated source pages;
+1. downloads the GitHub-hosted `martj42/international_results` CSV;
+2. validates its schema, size, dates, scores and team aliases;
+3. admits completed matches only after the frozen TSV snapshot date;
+4. extracts identified future fixtures and computes current model probabilities;
 5. replays all history with the frozen model;
 6. runs Python and JavaScript checks;
 7. deploys the new static artifact only after every check passes.
 
 Routine updates never refit the model. A re-fit is a separate research release.
-
-The repository can also be created without transferring an archive or data
-snapshot. If `source/elo_pages` is absent on the initial push, the workflow
-uses `config/source_slugs.txt` to restore the complete historical source before
-building, testing and deploying the site.
 
 ## Connect GitHub so Codex can publish it
 
@@ -78,13 +74,13 @@ To check the public source before building:
 python scripts/fetch_sources.py --source source
 ```
 
-Use `--full` for an explicit full reconciliation. The fetcher is rate-limited,
-retries transient failures and stages every response before replacing the last
-good snapshot.
+The compatibility flags `--full` and `--full-if-sunday` are accepted by the
+existing workflow but do not rewrite the frozen historical snapshot. The
+fetcher stages every derived file before replacing the last good supplement.
 
 ## Repository layout
 
-- `source/` — validated first-party TSV snapshot.
+- `source/` — validated WFE TSV snapshot plus the current open-data supplement.
 - `config/` — exact bake-off parameters and tournament metadata.
 - `scripts/ledger.py` — canonicalisation, deduplication and same-day ordering.
 - `scripts/model.py` — frozen network replay and conservative record layer.
@@ -117,10 +113,13 @@ there is no one-per-pair rule.
 
 ## Source and status
 
-Match rows and labels are from [World Football Elo Ratings](https://eloratings.net/).
-The site has public headerless TSV files but no documented API, so schema checks
-are part of every update. This project is independent and is not affiliated
-with eloratings.net, FIFA or any confederation.
+Historical match rows and labels are from
+[World Football Elo Ratings](https://eloratings.net/). Results after the frozen
+snapshot and future fixtures come from the CC0-licensed
+[martj42/international_results](https://github.com/martj42/international_results)
+dataset. Supplemental matches are never used to rewrite the fitted historical
+period. This project is independent and is not affiliated with either source,
+FIFA or any confederation.
 
 The model omits line-ups, injuries, red cards, travel, rest, weather, tactics and
 betting markets. Its probabilities are model estimates, not betting advice.

@@ -1,0 +1,32 @@
+{
+  "source": "https://raw.githubusercontent.com/martj42/international_results/master/results.csv",
+  "checked_at": "2026-07-14T12:52:03+00:00",
+  "fixtures": [
+    {
+      "date": "2026-07-14",
+      "team1_code": "FR",
+      "team2_code": "ES",
+      "team1_name": "France",
+      "team2_name": "Spain",
+      "tournament_code": "WC",
+      "tournament_name": "FIFA World Cup",
+      "city": "Arlington",
+      "country": "United States",
+      "neutral": true,
+      "home_sign": 0
+    },
+    {
+      "date": "2026-07-15",
+      "team1_code": "EN",
+      "team2_code": "AR",
+      "team1_name": "England",
+      "team2_name": "Argentina",
+      "tournament_code": "WC",
+      "tournament_name": "FIFA World Cup",
+      "city": "Atlanta",
+      "country": "United States",
+      "neutral": true,
+      "home_sign": 0
+    }
+  ]
+}

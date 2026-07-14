@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import csv
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -77,7 +78,59 @@ class Match:
         return abs(self.score1 - self.score2)
 
 
-def read_matches(pages: Path, successors: dict[str, str]) -> list[Match]:
+def read_supplemental_matches(path: Path, successors: dict[str, str]) -> list[Match]:
+    if not path.exists():
+        return []
+    matches: list[Match] = []
+    with path.open(encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        required = {
+            "date", "team1_code", "team2_code", "team1_name", "team2_name",
+            "score1", "score2", "tournament_code", "country", "home_sign",
+        }
+        if reader.fieldnames is None or not required.issubset(reader.fieldnames):
+            raise ValueError(f"Supplemental result schema changed: {reader.fieldnames}")
+        for line_number, row in enumerate(reader, start=2):
+            try:
+                year, month, day_of_month = map(int, row["date"].split("-"))
+                team1_code = row["team1_code"]
+                team2_code = row["team2_code"]
+                score1 = int(row["score1"])
+                score2 = int(row["score2"])
+                home_sign = int(row["home_sign"])
+            except (KeyError, TypeError, ValueError) as error:
+                raise ValueError(f"Invalid supplemental result at {path}:{line_number}") from error
+            if home_sign not in {-1, 0, 1}:
+                raise ValueError(f"Invalid home sign at {path}:{line_number}")
+            matches.append(
+                Match(
+                    day=year * 400 + month * 32 + day_of_month,
+                    year=year,
+                    month=month,
+                    day_of_month=day_of_month,
+                    date_text=row["date"],
+                    team1_code=team1_code,
+                    team2_code=team2_code,
+                    team1=canonical(team1_code, successors),
+                    team2=canonical(team2_code, successors),
+                    score1=score1,
+                    score2=score2,
+                    tournament=row["tournament_code"],
+                    venue=row.get("country", ""),
+                    home_sign=home_sign,
+                    official_change=0,
+                    official_post1=0,
+                    official_post2=0,
+                )
+            )
+    return sorted(matches, key=lambda match: (match.day, match.team1_code, match.team2_code))
+
+
+def read_matches(
+    pages: Path,
+    successors: dict[str, str],
+    supplemental: Path | None = None,
+) -> list[Match]:
     """Read, deduplicate and same-day order all team-page rows.
 
     The first nine fields form the source's stable match identity. Same-day
@@ -161,6 +214,11 @@ def read_matches(pages: Path, successors: dict[str, str]) -> list[Match]:
             official_state[chosen.team2] = chosen.official_post2
             remaining.remove(chosen)
         start = end
+    if supplemental is not None:
+        extras = read_supplemental_matches(supplemental, successors)
+        if extras and ordered and extras[0].day <= ordered[-1].day:
+            raise ValueError("Supplemental results must begin after the TSV snapshot")
+        ordered.extend(extras)
     return ordered
 
 
