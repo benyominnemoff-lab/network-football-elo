@@ -179,6 +179,7 @@ def main() -> None:
     )
 
     (args.output / ".nojekyll").write_text("", encoding="utf-8")
+    shutil.copyfile(args.config / "404.html", args.output / "404.html")
     manifest_files = [
         path
         for path in sorted(args.output.rglob("*"))
