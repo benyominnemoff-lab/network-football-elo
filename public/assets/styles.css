@@ -230,6 +230,7 @@ td.numeric, th.numeric { text-align: right; font-variant-numeric: tabular-nums; 
 .probability .pl { background: #c55f54; }
 .empty { padding: 54px 20px; color: var(--ink-soft); text-align: center; }
 .pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; }
+.pagination-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .match-pagination { justify-content: flex-start; margin: 8px 0 16px; }
 .match-pagination > span { flex: 1; text-align: center; }
 
@@ -343,7 +344,8 @@ td.numeric, th.numeric { text-align: right; font-variant-numeric: tabular-nums; 
   .chart-summary { display: grid; gap: 5px; }
   .pagination { flex-wrap: wrap; }
   .pagination > span { order: -1; width: 100%; text-align: center; }
-  .pagination > .button { flex: 1 1 120px; }
+  .pagination-actions { width: 100%; }
+  .pagination-actions > .button { flex: 1 1 120px; }
   .match-pagination { display: grid; grid-template-columns: 1fr 1fr; }
   .match-pagination > span { grid-column: 1 / -1; grid-row: 1; width: auto; }
   .match-pagination > .button { min-width: 0; }

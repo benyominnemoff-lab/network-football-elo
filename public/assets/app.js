@@ -509,7 +509,7 @@
         <div class="record-tabs"><button class="button button-dark" data-record="peaks" aria-pressed="true">Nation peaks</button><button class="button" data-record="matches" aria-pressed="false">Top matches</button><button class="button" data-record="upsets" aria-pressed="false">Largest upsets</button></div>
         <div id="record-note" class="record-note"></div>
         <div id="record-table"></div>
-        <div class="pagination"><span id="record-count" class="muted small"></span><button id="record-more" class="button">Show more</button></div>
+        <div class="pagination"><span id="record-count" class="muted small" aria-live="polite"></span><div class="pagination-actions"><button id="record-more" class="button">Show more</button><button id="record-all" class="button button-quiet">Show all</button></div></div>
       </div>`;
     let view = ["peaks", "matches", "upsets"].includes(route.query.get("view")) ? route.query.get("view") : "peaks";
     let shown = Math.max(25, Number(route.query.get("shown") || 25)) || 25;
@@ -529,6 +529,7 @@
       document.getElementById("record-table").innerHTML = view === "peaks" ? peakTable(visible) : view === "matches" ? matchRecordTable(visible) : upsetTable(visible);
       document.getElementById("record-count").textContent = `Showing ${number(visible.length)} of ${number(source.length)}`;
       document.getElementById("record-more").hidden = shown >= source.length;
+      document.getElementById("record-all").hidden = shown >= source.length;
       replaceRouteQuery("records", { view: view === "peaks" ? "" : view, shown: shown > 25 ? shown : "" });
     };
     document.querySelectorAll("[data-record]").forEach((button) => button.addEventListener("click", () => {
@@ -542,6 +543,10 @@
       update();
     }));
     document.getElementById("record-more").addEventListener("click", () => { shown += 25; update(); });
+    document.getElementById("record-all").addEventListener("click", () => {
+      shown = (view === "peaks" ? summary.peaks : view === "matches" ? summary.top_matches : summary.upsets).length;
+      update();
+    });
     update();
   }
 
@@ -558,7 +563,7 @@
         <div class="toolbar"><div class="field field-grow"><label for="fixture-search">Team or competition</label><input id="fixture-search" type="search" placeholder="Vietnam, friendly, AFCON…" value="${escapeHTML(route.query.get("q") || "")}"></div><div class="field"><label for="fixture-competition">Competition</label><select id="fixture-competition"><option value="">All competitions</option>${competitions.map((name) => `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join("")}</select></div></div>
         <p id="fixture-count" class="muted small"></p>
         <div id="fixture-table"></div>
-        <div class="pagination"><span id="fixture-page" class="muted small" aria-live="polite"></span><button id="fixture-more" class="button">Show more</button></div>
+        <div class="pagination"><span id="fixture-page" class="muted small" aria-live="polite"></span><div class="pagination-actions"><button id="fixture-more" class="button">Show more</button><button id="fixture-all" class="button button-quiet">Show all</button></div></div>
       </div>`;
     let shown = Math.max(50, Number(route.query.get("shown") || 50)) || 50;
     const requestedCompetition = route.query.get("competition") || "";
@@ -574,6 +579,7 @@
       document.getElementById("fixture-count").textContent = `${number(filtered.length)} matching fixtures`;
       document.getElementById("fixture-page").textContent = `Showing ${number(visible.length)} of ${number(filtered.length)}`;
       document.getElementById("fixture-more").hidden = visible.length >= filtered.length;
+      document.getElementById("fixture-all").hidden = visible.length >= filtered.length;
       document.getElementById("fixture-table").innerHTML = visible.length ? `<div class="table-shell fixture-table"><table><thead><tr><th>Date</th><th>Match</th><th>H/A/N</th><th class="numeric">Combined rating</th><th>W / D / L</th><th class="hide-mobile">Competition</th><th class="hide-mobile">Location</th></tr></thead><tbody>${visible.map((fixture) => `<tr>
         <td>${fixtureDate(fixture)}</td><td data-label="Match">${teamLink(fixture.team1_code, fixture.team1_name)} <span class="muted">v</span> ${teamLink(fixture.team2_code, fixture.team2_name)}<span class="rating-sub">${rating(fixture.rating1)} + ${rating(fixture.rating2)}</span></td><td data-label="Venue">${venueHTML(fixtureSite(fixture))}</td><td class="numeric" data-label="Combined"><span class="rating-main">${rating(fixture.combined_rating)}</span></td><td data-label="Forecast">${probabilityHTML(fixture.probabilities)}</td><td class="hide-mobile" data-label="Competition">${escapeHTML(fixture.tournament_name)}</td><td class="hide-mobile" data-label="Location">${escapeHTML([fixture.city, fixture.country].filter(Boolean).join(", "))}${fixture.neutral ? `<span class="rating-sub">neutral venue</span>` : ""}</td>
       </tr>`).join("")}</tbody></table></div>` : `<div class="empty"><h2>No fixtures match those filters.</h2></div>`;
@@ -582,6 +588,7 @@
     document.getElementById("fixture-search").addEventListener("input", () => { shown = 50; update(); });
     document.getElementById("fixture-competition").addEventListener("change", () => { shown = 50; update(); });
     document.getElementById("fixture-more").addEventListener("click", () => { shown += 50; update(); });
+    document.getElementById("fixture-all").addEventListener("click", () => { shown = fixtures.length; update(); });
     update();
   }
 
@@ -723,7 +730,7 @@
           <div><span>Matches</span><strong>${number(cutoff ? historicalStats.matches : team.matches)}</strong></div><div><span>Record</span><strong>${cutoff ? `${historicalStats.W}–${historicalStats.D}–${historicalStats.L}` : `${team.wins}–${team.draws}–${team.losses}`}</strong></div><div><span>Goals</span><strong>${cutoff ? `${historicalStats.gf}–${historicalStats.ga}` : `${team.gf}–${team.ga}`}</strong></div><div><span>${cutoff ? "Latest match" : "Opponent breadth"}</span><strong>${cutoff ? (availableMatches.length ? validDate(availableMatches[0].date) : "—") : number(team.breadth, 1)}</strong></div><div><span>${cutoff ? "Peak by date" : "All-time peak"}</span><strong>${rating(cutoff ? historicalPeak?.rating : team.peak?.rating)}</strong></div>
         </div>
         <section class="section"><div class="section-heading"><div><p class="eyebrow">Rating after each match</p><h2>Rating history${cutoff ? ` to ${validDate(cutoff)}` : ""}</h2></div></div>${ratingChart(history, displayName)}</section>
-        <section class="section"><div class="section-heading"><div><p class="eyebrow">${cutoff ? "Matches through selected date" : "Complete match history"}</p><h2>Matches</h2></div><a class="button button-quiet" href="#/matches?team=${encodeURIComponent(team.code)}">Open in explorer →</a></div><div id="team-matches"></div><div class="pagination"><span id="team-count" class="muted small"></span><button id="team-more" class="button">Show more</button></div></section>
+        <section class="section"><div class="section-heading"><div><p class="eyebrow">${cutoff ? "Matches through selected date" : "Complete match history"}</p><h2>Matches</h2></div><a class="button button-quiet" href="#/matches?team=${encodeURIComponent(team.code)}">Open in explorer →</a></div><div id="team-matches"></div><div class="pagination"><span id="team-count" class="muted small" aria-live="polite"></span><div class="pagination-actions"><button id="team-more" class="button">Show more</button><button id="team-all" class="button button-quiet">Show all</button></div></div></section>
       </div>`;
     let shown = 100;
     const update = () => {
@@ -731,8 +738,10 @@
       document.getElementById("team-matches").innerHTML = `<div class="table-shell team-match-table"><table><thead><tr><th>Date</th><th>Opponent</th><th>H/A/N</th><th class="numeric">Score</th><th>Result</th><th class="hide-mobile">Competition</th><th class="numeric hide-mobile">Rating after match</th></tr></thead><tbody>${matches.map((match) => `<tr><td data-label="Date">${validDate(match.date)}</td><td data-label="Opponent">${teamLink(match.opponent_code, match.opponent)}</td><td data-label="Venue">${venueHTML(match.site)}</td><td class="numeric" data-label="Score"><span class="score">${match.gf}–${match.ga}</span></td><td data-label="Result">${formHTML([match.result])}</td><td class="hide-mobile" data-label="Competition">${escapeHTML(match.tournament)}</td><td class="numeric hide-mobile" data-label="Rating after match">${rating(match.post)}</td></tr>`).join("")}</tbody></table></div>`;
       document.getElementById("team-count").textContent = `Showing ${number(matches.length)} of ${number(availableMatches.length)}`;
       document.getElementById("team-more").hidden = shown >= availableMatches.length;
+      document.getElementById("team-all").hidden = shown >= availableMatches.length;
     };
     document.getElementById("team-more").addEventListener("click", () => { shown += 100; update(); });
+    document.getElementById("team-all").addEventListener("click", () => { shown = availableMatches.length; update(); });
     update();
   }
 

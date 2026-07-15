@@ -190,6 +190,13 @@ class StaticBuildTests(unittest.TestCase):
         sitemap = (public / "sitemap.xml").read_text(encoding="utf-8")
         self.assertIn("/network-football-elo/team/AR/", sitemap)
 
+    def test_progressive_lists_offer_show_all(self) -> None:
+        javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
+        for prefix in ("record", "fixture", "team"):
+            self.assertIn(f'id="{prefix}-more"', javascript)
+            self.assertIn(f'id="{prefix}-all"', javascript)
+        self.assertEqual(javascript.count(">Show more</button>"), javascript.count(">Show all</button>"))
+
     def test_historical_rankings_are_chunked_by_year(self) -> None:
         index = json.loads((self.data / "rankings-history" / "index.json").read_text(encoding="utf-8"))
         self.assertEqual(index["first"][:4], str(index["years"][0]["year"]))
