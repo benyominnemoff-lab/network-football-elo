@@ -1,8 +1,8 @@
 # Network Football Elo
 
 A static, searchable international-football rating site built from the public
-World Football Elo Ratings TSV ledger and the frozen winner of the Great Elo
-Bake-off. It includes current rankings, every historical source result, one
+World Football Elo Ratings TSV ledger and a fixed, historically validated model.
+It includes current rankings, every historical source result, one
 all-time peak per nation, the highest-rated match instances, team histories,
 and a current-state probability calculator.
 
@@ -26,32 +26,6 @@ It:
 7. deploys the new static artifact only after every check passes.
 
 Routine updates never refit the model. A re-fit is a separate research release.
-
-## Connect GitHub so Codex can publish it
-
-Do **not** paste a personal access token into chat. Use the GitHub App flow:
-
-1. Create an empty GitHub repository, ideally public and named
-   `network-football-elo`.
-2. Open [Codex](https://chatgpt.com/codex), sign in with ChatGPT, choose
-   **Connect GitHub**, and authorize that repository.
-3. In Codex environment settings, create an environment for the repository.
-4. Give Codex the exact `owner/repository` name. Codex can then put this project
-   into the repository and open the initial pull request (or push if the
-   repository permissions allow it).
-5. In the repository, open **Settings → Pages** and choose **GitHub Actions** as
-   the publishing source.
-6. In **Settings → Actions → General → Workflow permissions**, select
-   **Read and write permissions**. This lets the scheduled bot preserve newly
-   validated source snapshots. Pages deployment also uses its dedicated token
-   permissions in the workflow.
-7. Merge the initial pull request if branch protection requires review. The
-   first run builds and publishes the site; no further manual updates are
-   required.
-
-GitHub may take several minutes to show a newly authorized repository in Codex.
-Organization repositories can also require an administrator to approve the
-GitHub App.
 
 ## Local build
 
@@ -81,14 +55,14 @@ good snapshot.
 ## Repository layout
 
 - `source/` — validated first-party TSV snapshot.
-- `config/` — exact bake-off parameters and tournament metadata.
+- `config/` — fixed deployment parameters and tournament metadata.
 - `scripts/ledger.py` — canonicalisation, deduplication and same-day ordering.
 - `scripts/model.py` — frozen network replay and conservative record layer.
 - `scripts/build_site.py` — static JSON generation and build manifest.
 - `scripts/fetch_sources.py` — guarded public-source updater.
 - `public/` — GitHub Pages application shell; generated data is ignored by Git.
 - `.github/workflows/pages.yml` — scheduled refresh, checks and deployment.
-- `docs/great-elo-bakeoff.md` — held-out model-selection report.
+- `docs/` — held-out model evaluation and selection report.
 
 ## Rating conventions
 

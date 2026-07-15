@@ -96,6 +96,13 @@ class StaticBuildTests(unittest.TestCase):
         self.assertIn('function matchSite(match, perspective = "")', javascript)
         self.assertIn('if (perspective === match.b)', javascript)
         self.assertIn('matchTable(hydrated, document.getElementById("match-team").value)', javascript)
+        self.assertIn('aria-label="Ranking date calendar"', javascript)
+        self.assertIn('document.getElementById("history-next").disabled = chosen >= index.last;', javascript)
+
+    def test_public_readme_avoids_internal_setup_language(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
+        self.assertNotIn("codex", readme)
+        self.assertNotIn("bake-off", readme)
 
     def test_team_matches_use_names_from_the_match_date(self) -> None:
         germany = json.loads((self.data / "teams" / "DE.json").read_text(encoding="utf-8"))
