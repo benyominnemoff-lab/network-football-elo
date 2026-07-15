@@ -1,13 +1,19 @@
 {
-  "source_checked_at": "2026-07-14T19:42:29+00:00",
-  "mode": "GitHub-hosted open-results supplement",
+  "source_checked_at": "2026-07-15T09:40:37+00:00",
+  "mode": "multi-source open-results supplement",
   "base_snapshot_through": "2026-07-11",
-  "supplemental_results": 0,
-  "upcoming_fixtures": 2,
+  "supplemental_results": 1,
+  "upcoming_fixtures": 157,
   "open_feed_rows": 49509,
   "unresolved_names": [],
-  "base_url": "https://raw.githubusercontent.com/martj42/international_results/master/results.csv",
-  "integrity": "CSV schema, row count, dates, scores and team aliases validated",
+  "base_urls": [
+    "https://raw.githubusercontent.com/martj42/international_results/master/results.csv",
+    "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json"
+  ],
+  "world_cup_results": 1,
+  "sportsdb_fixture_events": 156,
+  "sportsdb_requests": 6,
+  "integrity": "All result and fixture sources passed schema, size, date, score, alias and conflict checks",
   "base_snapshot": {
     "source_checked_at": "2026-07-14T00:00:00+00:00",
     "mode": "validated historical results snapshot",
