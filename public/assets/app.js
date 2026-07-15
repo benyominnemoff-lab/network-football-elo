@@ -109,62 +109,53 @@
     return `<div class="probability" aria-label="Win ${percent(values[0])}, draw ${percent(values[1])}, loss ${percent(values[2])}">${values.map((value, index) => `<span class="${classes[index]}" style="width:${Math.max(12, value * 100)}%" title="${labels[index]} ${percent(value)}">${number(value * 100, 0)}</span>`).join("")}</div>`;
   }
 
-  function renderHome() {
+  async function renderHome() {
     setTitle("");
-    const leaders = summary.current.slice(0, 3);
     const topTen = summary.current.slice(0, 10);
-    const low = Math.min(...topTen.map((item) => item.rating)) - 10;
-    const high = Math.max(...topTen.map((item) => item.rating));
+    const fixturePayload = await getJSON("data/fixtures.json");
+    const nextFixtures = (fixturePayload.fixtures || []).slice(0, 5);
     content.innerHTML = `
-      <div class="page">
-        <section class="hero">
+      <div class="page home-page">
+        <section class="home-intro">
+          <div class="home-intro-copy">
           <p class="eyebrow">A predictive rating, rebuilt from 1872</p>
-          <h1>Football strength through the <em>whole opponent network.</em></h1>
+          <h1>International football, ranked in context.</h1>
           <p class="lede">International results since 1872 are used to estimate each team's strength. The model follows connections through shared opponents and allows for uncertainty when teams have played few or geographically limited opponents.</p>
           <div class="hero-actions">
             <a class="button button-primary" href="#/rankings">See the rankings</a>
             <a class="button" href="#/fixtures">Upcoming matches</a>
             <a class="button" href="#/predict">Try a matchup</a>
           </div>
-          <div class="hero-meta">
-            <span><strong>${number(summary.meta.matches)}</strong>matches</span>
-            <span><strong>${number(summary.meta.teams)}</strong>team histories</span>
-            <span><strong>${validDate(summary.meta.results_through)}</strong>latest result</span>
           </div>
+          <dl class="home-facts">
+            <div><dt>Latest result</dt><dd>${validDate(summary.meta.results_through)}</dd></div>
+            <div><dt>Matches</dt><dd>${number(summary.meta.matches)}</dd></div>
+            <div><dt>Teams</dt><dd>${number(summary.meta.teams)}</dd></div>
+            <div><dt>Forecast accuracy</dt><dd>${percent(summary.validation.accuracy)}</dd></div>
+          </dl>
         </section>
 
-        <section class="stat-grid" aria-label="Model summary">
-          <article class="stat-card"><span class="label">Forecast accuracy</span><strong class="value">${percent(summary.validation.accuracy)}</strong><span class="context">on later, unseen matches</span></article>
-          <article class="stat-card"><span class="label">Team histories</span><strong class="value">${number(summary.meta.teams)}</strong><span class="context">linked through shared opponents</span></article>
-          <article class="stat-card"><span class="label">Coverage</span><strong class="value">1872</strong><span class="context">first recorded match</span></article>
-          <article class="stat-card"><span class="label">Forecast types</span><strong class="value">2</strong><span class="context">friendly and competitive</span></article>
-        </section>
-
-        <section class="section">
-          <div class="section-heading"><div><p class="eyebrow">Current order</p><h2>The leading three</h2></div><a class="button button-quiet" href="#/rankings">Full table →</a></div>
-          <div class="leader-grid">${leaders.map((team, index) => `
-            <article class="leader-card" data-rank="${index + 1}">
-              <a href="${teamURL(team.code)}"><span class="rank">World no. ${index + 1}</span><h3>${escapeHTML(team.nation)}</h3><strong>${rating(team.rating)}</strong><p>rating · uncertainty ${rating(team.se)}</p></a>
-            </article>`).join("")}</div>
-        </section>
-
-        <section class="section split">
-          <div>
-            <div class="section-heading"><div><p class="eyebrow">Top ten</p><h2>Strength at a glance</h2></div></div>
-            <div class="bar-chart" role="img" aria-label="Current top ten ratings">${topTen.map((team) => `
-              <div class="bar-row"><a href="${teamURL(team.code)}">${escapeHTML(team.nation)}</a><div class="bar-track"><div class="bar-fill" style="width:${Math.max(5, (team.rating - low) / Math.max(1, high - low) * 100)}%"></div></div><span class="bar-value">${rating(team.rating)}</span></div>`).join("")}</div>
+        <section class="home-dashboard">
+          <div class="home-ranking-list">
+            <div class="compact-heading"><div><p class="eyebrow">Current rankings</p><h2>Top ten</h2></div><a href="#/rankings">Full rankings →</a></div>
+            <ol>${topTen.map((team, index) => `<li><span class="home-rank">${index + 1}</span><a href="${teamURL(team.code)}">${escapeHTML(team.nation)}</a><strong>${rating(team.rating)}</strong><small>±${rating(team.se)}</small></li>`).join("")}</ol>
           </div>
-          <aside class="panel panel-dark">
-            <p class="eyebrow">How it works</p>
-            <h2>Results are judged in context.</h2>
-            <p class="muted">Beating a strong opponent matters more than beating a weak one. Shared opponents connect teams across regions and eras, while an uncertainty adjustment prevents teams with limited evidence from being overrated.</p>
-            <a class="button button-primary" href="#/methodology">Read the methodology</a>
+          <aside class="home-upcoming">
+            <div class="compact-heading"><div><p class="eyebrow">Next matches</p><h2>Upcoming</h2></div><a href="#/fixtures">All fixtures →</a></div>
+            ${nextFixtures.length ? `<ul>${nextFixtures.map((fixture) => `<li><time>${validDate(fixture.date)}</time><span>${teamLink(fixture.team1_code, fixture.team1_name)} <i>v</i> ${teamLink(fixture.team2_code, fixture.team2_name)}</span><small>${escapeHTML(fixture.tournament_name)}</small></li>`).join("")}</ul>` : `<p class="muted">No identified fixtures in the current feeds.</p>`}
           </aside>
         </section>
 
-        <section class="section">
-          <div class="section-heading"><div><p class="eyebrow">Record book</p><h2>Highest-rated matchups</h2></div><a class="button button-quiet" href="#/records">All records →</a></div>
-          ${matchRecordTable(summary.top_matches.slice(0, 8))}
+        <section class="home-support">
+          <div>
+            <p class="eyebrow">What makes it different</p><h2>Opponents—and their opponents—matter.</h2>
+            <p>Beating a strong side counts for more. Shared opponents connect regions and eras, while uncertainty stops isolated teams being overrated.</p>
+            <a href="#/methodology">Read the methodology →</a>
+          </div>
+          <div class="home-records">
+            <div class="compact-heading"><div><p class="eyebrow">Record book</p><h2>Greatest matchups</h2></div><a href="#/records">All records →</a></div>
+            <ol>${summary.top_matches.slice(0, 5).map((match, index) => `<li><span>${index + 1}</span><div>${teamLink(match.code1, match.team1)} <i>v</i> ${teamLink(match.code2, match.team2)}<small>${validDate(match.date)}</small></div><strong>${rating(match.combined)}</strong></li>`).join("")}</ol>
+          </div>
         </section>
       </div>`;
   }
@@ -393,9 +384,9 @@
       <td data-label="Match">${teamLink(match.a, match.an)} <span class="muted">v</span> ${teamLink(match.b, match.bn)}</td>
       <td data-label="Venue">${venueHTML(match.home === 0 ? "N" : match.home === 1 ? "H" : "A")}</td>
       <td class="numeric" data-label="Score"><span class="score">${match.sa}–${match.sb}</span></td>
-      <td class="hide-mobile">${escapeHTML(match.t)}</td>
+          <td class="hide-mobile" data-label="Competition">${escapeHTML(match.t)}</td>
       <td data-label="Forecast">${probabilityHTML(match.p)}</td>
-      <td class="numeric hide-mobile">${rating(match.combined)}</td>
+          <td class="numeric hide-mobile" data-label="Combined rating">${rating(match.combined)}</td>
     </tr>`).join("")}</tbody></table></div>`;
   }
 
@@ -454,15 +445,15 @@
     const fixtures = payload.fixtures || [];
     content.innerHTML = `
       <div class="page">
-        <header class="page-heading"><div><p class="eyebrow">Scheduled senior internationals</p><h1>Upcoming matches</h1></div><p class="lede">Future fixtures from the open international-results feed, paired with probabilities from the current ratings. W and L are from the perspective of the first-listed team. Kickoff times are not available from the current fixture source.</p></header>
+        <header class="page-heading"><div><p class="eyebrow">Scheduled senior internationals</p><h1>Upcoming matches</h1></div><p class="lede">Validated fixtures from multiple public schedules, paired with probabilities from the current ratings. W and L are from the perspective of the first-listed team.</p></header>
         <div class="record-note"><strong>${number(fixtures.length)}</strong><div><b>Known future pairings.</b> Placeholder knockout matches remain hidden until both teams are identified. Feed checked ${validTimestamp(payload.checked_at)}.</div></div>
         ${fixtures.length ? `<div class="table-shell fixture-table"><table><thead><tr><th>Date</th><th>Match</th><th class="numeric">Combined rating</th><th>W / D / L</th><th class="hide-mobile">Competition</th><th class="hide-mobile">Location</th></tr></thead><tbody>${fixtures.map((fixture) => `<tr>
           <td>${validDate(fixture.date)}</td>
           <td data-label="Match">${teamLink(fixture.team1_code, fixture.team1_name)} <span class="muted">v</span> ${teamLink(fixture.team2_code, fixture.team2_name)}<span class="rating-sub">${rating(fixture.rating1)} + ${rating(fixture.rating2)}</span></td>
           <td class="numeric" data-label="Combined"><span class="rating-main">${rating(fixture.combined_rating)}</span></td>
           <td>${probabilityHTML(fixture.probabilities)}</td>
-          <td class="hide-mobile">${escapeHTML(fixture.tournament_name)}</td>
-          <td class="hide-mobile">${escapeHTML([fixture.city, fixture.country].filter(Boolean).join(", "))}${fixture.neutral ? `<span class="rating-sub">neutral venue</span>` : ""}</td>
+          <td class="hide-mobile" data-label="Competition">${escapeHTML(fixture.tournament_name)}</td>
+          <td class="hide-mobile" data-label="Location">${escapeHTML([fixture.city, fixture.country].filter(Boolean).join(", "))}${fixture.neutral ? `<span class="rating-sub">neutral venue</span>` : ""}</td>
         </tr>`).join("")}</tbody></table></div>` : `<div class="empty"><h2>No identified fixtures in the feed.</h2><p>Future knockout placeholders appear after both participants are known.</p></div>`}
       </div>`;
   }
@@ -609,7 +600,7 @@
     let shown = 100;
     const update = () => {
       const matches = availableMatches.slice(0, shown);
-      document.getElementById("team-matches").innerHTML = `<div class="table-shell team-match-table"><table><thead><tr><th>Date</th><th>Opponent</th><th>H/A/N</th><th class="numeric">Score</th><th>Result</th><th class="hide-mobile">Competition</th><th class="numeric hide-mobile">Rating after match</th></tr></thead><tbody>${matches.map((match) => `<tr><td data-label="Date">${validDate(match.date)}</td><td data-label="Opponent">${teamLink(match.opponent_code, match.opponent)}</td><td data-label="Venue">${venueHTML(match.site)}</td><td class="numeric" data-label="Score"><span class="score">${match.gf}–${match.ga}</span></td><td data-label="Result">${formHTML([match.result])}</td><td class="hide-mobile">${escapeHTML(match.tournament)}</td><td class="numeric hide-mobile">${rating(match.post)}</td></tr>`).join("")}</tbody></table></div>`;
+      document.getElementById("team-matches").innerHTML = `<div class="table-shell team-match-table"><table><thead><tr><th>Date</th><th>Opponent</th><th>H/A/N</th><th class="numeric">Score</th><th>Result</th><th class="hide-mobile">Competition</th><th class="numeric hide-mobile">Rating after match</th></tr></thead><tbody>${matches.map((match) => `<tr><td data-label="Date">${validDate(match.date)}</td><td data-label="Opponent">${teamLink(match.opponent_code, match.opponent)}</td><td data-label="Venue">${venueHTML(match.site)}</td><td class="numeric" data-label="Score"><span class="score">${match.gf}–${match.ga}</span></td><td data-label="Result">${formHTML([match.result])}</td><td class="hide-mobile" data-label="Competition">${escapeHTML(match.tournament)}</td><td class="numeric hide-mobile" data-label="Rating after match">${rating(match.post)}</td></tr>`).join("")}</tbody></table></div>`;
       document.getElementById("team-count").textContent = `Showing ${number(matches.length)} of ${number(availableMatches.length)}`;
       document.getElementById("team-more").hidden = shown >= availableMatches.length;
     };
@@ -694,7 +685,7 @@
         </section>
         <article class="section prose">
           <h2>Data sources</h2>
-          <p>Historical results and team labels are based on <a href="https://eloratings.net/" rel="external">World Football Elo Ratings</a>. Recent international results and fixtures come from the CC0-licensed <a href="https://github.com/martj42/international_results" rel="external">international_results dataset</a>, with the public-domain <a href="https://github.com/openfootball/worldcup.json" rel="external">OpenFootball World Cup feed</a> providing an independently validated tournament fallback. Team names and successor histories are standardised so that the same national side is followed consistently over time.</p>
+          <p>Historical results and team labels are based on <a href="https://eloratings.net/" rel="external">World Football Elo Ratings</a>. Recent results use the CC0-licensed <a href="https://github.com/martj42/international_results" rel="external">international_results dataset</a> and the public-domain <a href="https://github.com/openfootball/worldcup.json" rel="external">OpenFootball World Cup feed</a>. Future tournament schedules are supplemented by <a href="https://www.thesportsdb.com/" rel="external">TheSportsDB</a>. Duplicate events are merged and conflicting scores stop publication.</p>
           <h2>Automatic updates</h2>
           <p>When new results arrive, the entire history is recalculated in chronological order. This matters because each rating depends on the teams' earlier results, opponents and uncertainty. Model parameters remain fixed during routine daily updates, so historical changes come from source corrections rather than silent changes to the method.</p>
           <h2>What the model does not know</h2>
@@ -716,7 +707,7 @@
     try {
       if (!summary) [summary, catalog] = await Promise.all([getJSON("data/summary.json"), getJSON("data/catalog.json")]);
       switch (current.section) {
-        case "home": renderHome(); break;
+        case "home": await renderHome(); break;
         case "rankings": renderRankings(); break;
         case "history": await renderHistory(current); break;
         case "matches": await renderMatches(current); break;

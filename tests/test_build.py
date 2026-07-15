@@ -165,6 +165,8 @@ class StaticBuildTests(unittest.TestCase):
         self.assertIn('rel="canonical"', html)
         self.assertIn('property="og:image"', html)
         self.assertIn('rel="icon"', html)
+        self.assertRegex(html, r'assets/styles\.css\?v=[0-9a-f]{12}')
+        self.assertRegex(html, r'assets/app\.js\?v=[0-9a-f]{12}')
         self.assertEqual((public / "social-card.png").stat().st_size > 10_000, True)
         self.assertIn("Sitemap:", (public / "robots.txt").read_text(encoding="utf-8"))
         self.assertIn("<urlset", (public / "sitemap.xml").read_text(encoding="utf-8"))

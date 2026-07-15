@@ -10,6 +10,7 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import re
 from typing import Any
 
 from model import (
@@ -52,6 +53,19 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def version_browser_assets(output: Path) -> None:
+    index = output / "index.html"
+    html = index.read_text(encoding="utf-8")
+    for asset in ("assets/styles.css", "assets/app.js"):
+        revision = sha256(output / asset)[:12]
+        html = re.sub(
+            rf'{re.escape(asset)}(?:\?v=[^"\']*)?',
+            f"{asset}?v={revision}",
+            html,
+        )
+    index.write_text(html, encoding="utf-8")
 
 
 def build_fixtures(source: Path, output: Any) -> dict[str, Any]:
@@ -231,6 +245,7 @@ def main() -> None:
         },
     )
 
+    version_browser_assets(args.output)
     (args.output / ".nojekyll").write_text("", encoding="utf-8")
     shutil.copyfile(args.config / "404.html", args.output / "404.html")
     manifest_files = [

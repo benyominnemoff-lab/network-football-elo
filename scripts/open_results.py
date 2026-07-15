@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta, timezone
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unicodedata
@@ -24,6 +25,16 @@ DEFAULT_URL = (
 WORLD_CUP_URL = (
     "https://raw.githubusercontent.com/openfootball/worldcup.json/"
     "master/2026/worldcup.json"
+)
+SPORTSDB_BASE = "https://www.thesportsdb.com/api/v1/json"
+SPORTSDB_FIXTURE_COMPETITIONS = (
+    {
+        "league_id": "4490",
+        "season": "2026-2027",
+        "rounds": range(1, 7),
+        "code": "NL",
+        "name": "UEFA Nations League",
+    },
 )
 EXPECTED_COLUMNS = {
     "date",
@@ -43,6 +54,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source", type=Path, default=Path("source"))
     parser.add_argument("--url", default=DEFAULT_URL)
     parser.add_argument("--world-cup-url", default=WORLD_CUP_URL)
+    parser.add_argument(
+        "--sportsdb-key",
+        default=os.environ.get("THESPORTSDB_API_KEY", "123"),
+        help="TheSportsDB v1 key; the documented free key is used by default",
+    )
     # Kept for compatibility with the existing scheduled workflow.
     parser.add_argument("--full", action="store_true")
     parser.add_argument("--full-if-sunday", action="store_true")
@@ -106,6 +122,9 @@ def team_aliases(source: Path, successors: dict[str, str]) -> dict[str, str]:
         "republicofireland": "IE",
         "czechrepublic": "CZ",
         "curacao": "CW",
+        "turkiye": "TR",
+        "bosniaherzegovina": "BA",
+        "unitedstatesofamerica": "US",
     }
     for label, code in manual.items():
         aliases[label] = canonical(code, successors)
@@ -165,6 +184,14 @@ def merge_record(
         if old_scores != new_scores:
             raise ValueError(f"Conflicting scores from result sources for {key}: {old_scores} vs {new_scores}")
     target[key] = item
+
+
+def integer_score(value: object) -> int | None:
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+        return value
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value)
+    return None
 
 
 def main() -> None:
@@ -313,6 +340,63 @@ def main() -> None:
         elif record_key(common) not in result_map:
             merge_record(fixture_map, common)
 
+    sportsdb_urls: list[str] = []
+    sportsdb_events = 0
+    for competition in SPORTSDB_FIXTURE_COMPETITIONS:
+        tournament_names[str(competition["code"])] = str(competition["name"])
+        for round_number in competition["rounds"]:
+            url = (
+                f"{SPORTSDB_BASE}/{args.sportsdb_key}/eventsround.php"
+                f"?id={competition['league_id']}&r={round_number}&s={competition['season']}"
+            )
+            sportsdb_urls.append(url.replace(f"/{args.sportsdb_key}/", "/KEY/"))
+            payload = json.loads(download(url, minimum_size=100))
+            events = payload.get("events")
+            if not isinstance(events, list):
+                raise ValueError(f"TheSportsDB returned no event list for {competition['name']} round {round_number}")
+            for event in events:
+                if not isinstance(event, dict):
+                    continue
+                try:
+                    match_date = date.fromisoformat(str(event["dateEvent"]))
+                except (KeyError, ValueError):
+                    continue
+                if match_date <= cutoff or match_date > horizon:
+                    continue
+                home_name = str(event.get("strHomeTeam", "")).strip()
+                away_name = str(event.get("strAwayTeam", "")).strip()
+                home = aliases.get(normalise(home_name))
+                away = aliases.get(normalise(away_name))
+                if home is None or away is None:
+                    unresolved.update(
+                        name for name, code in ((home_name, home), (away_name, away)) if name and code is None
+                    )
+                    continue
+                home_score = integer_score(event.get("intHomeScore"))
+                away_score = integer_score(event.get("intAwayScore"))
+                common = {
+                    "date": match_date.isoformat(),
+                    "kickoff_utc": str(event.get("strTimestamp", "")).strip(),
+                    "team1_code": home,
+                    "team2_code": away,
+                    "team1_name": home_name,
+                    "team2_name": away_name,
+                    "tournament_code": competition["code"],
+                    "tournament_name": competition["name"],
+                    "city": str(event.get("strVenue", "")).strip(),
+                    "country": str(event.get("strCountry", "")).strip(),
+                    "neutral": False,
+                    "home_sign": 1,
+                }
+                if home_score is not None and away_score is not None:
+                    merge_record(
+                        result_map,
+                        {**common, "score1": home_score, "score2": away_score},
+                    )
+                elif match_date >= today and record_key(common) not in result_map:
+                    merge_record(fixture_map, common)
+                    sportsdb_events += 1
+
     for key in result_map:
         fixture_map.pop(key, None)
     results = list(result_map.values())
@@ -337,7 +421,7 @@ def main() -> None:
         (staging / "upcoming_fixtures.json").write_text(
             json.dumps(
                 {
-                    "sources": [args.url, args.world_cup_url],
+                    "sources": [args.url, args.world_cup_url, "TheSportsDB v1 schedule API"],
                     "checked_at": checked_at,
                     "fixtures": fixtures,
                 },
@@ -383,7 +467,9 @@ def main() -> None:
         "unresolved_names": sorted(unresolved),
         "base_urls": [args.url, args.world_cup_url],
         "world_cup_results": world_cup_results,
-        "integrity": "Both sources passed schema, size, date, score, alias and conflict checks",
+        "sportsdb_fixture_events": sportsdb_events,
+        "sportsdb_requests": len(sportsdb_urls),
+        "integrity": "All result and fixture sources passed schema, size, date, score, alias and conflict checks",
         "base_snapshot": base_snapshot,
     }
     old_status_path.write_text(
