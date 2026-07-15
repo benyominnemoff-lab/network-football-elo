@@ -502,10 +502,13 @@ class NetworkEloReplay:
                 (i, j, match.score1, match.score2, pre_first, post_first),
                 (j, i, match.score2, match.score1, pre_second, post_second),
             ):
+                historical_team_code = match.team1_code if index == i else match.team2_code
+                historical_opponent_code = match.team2_code if index == i else match.team1_code
                 team_match = {
                     "id": match_id,
                     "date": match.date_text,
-                    "opponent": self.name(self.teams[opponent]),
+                    "team_name": self.name(historical_team_code),
+                    "opponent": self.name(historical_opponent_code),
                     "opponent_code": self.teams[opponent],
                     "gf": gf,
                     "ga": ga,
@@ -531,9 +534,7 @@ class NetworkEloReplay:
                         "matches": int(self.games[index]),
                         "form": list(self.stats[index]["last5"]),
                         "opponent": self.name(self.teams[opponent]),
-                        "historical_name": self.name(
-                            match.team1_code if index == i else match.team2_code
-                        ),
+                        "historical_name": self.name(historical_team_code),
                         "score": f"{gf}-{ga}",
                     }
                     self.histories[index].append(point)

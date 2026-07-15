@@ -68,6 +68,50 @@ def version_browser_assets(output: Path) -> None:
     index.write_text(html, encoding="utf-8")
 
 
+def write_route_entries(output: Path, summary: dict[str, Any]) -> None:
+    template = (output / "index.html").read_text(encoding="utf-8")
+    root = "https://benyominnemoff-lab.github.io/network-football-elo/"
+    routes = {
+        "rankings": ("Rankings", "Current international football rankings from the Network Football Elo model."),
+        "history": ("Historical rankings", "Reconstruct international football rankings on any historical matchday."),
+        "matches": ("Matches", "Search international football results and pre-match forecasts from 1872 onward."),
+        "fixtures": ("Upcoming matches", "Upcoming senior internationals with current ratings and match probabilities."),
+        "records": ("Records", "All-time national-team rating peaks, greatest matchups and largest upsets."),
+        "predict": ("Predict a match", "Compare two national teams and calculate win, draw and loss probabilities."),
+        "methodology": ("Methodology", "Detailed, reproducible methodology for the Network Football Elo model."),
+        "about": ("About", "Data sources, update schedule and limitations of Network Football Elo."),
+    }
+    entries: list[tuple[str, str, str]] = [
+        (path, title, description) for path, (title, description) in routes.items()
+    ]
+    entries.extend(
+        (f"team/{team['code']}", team["nation"], f"{team['nation']} ratings, results and historical record.")
+        for team in summary["teams"]
+    )
+    urls = [root]
+    for path, title, description in entries:
+        canonical = f"{root}{path}/"
+        html = template
+        html = re.sub(r"<title>.*?</title>", f"<title>{title} · Network Football Elo</title>", html)
+        html = re.sub(r'(<meta name="description" content=")[^"]*', rf"\g<1>{description}", html)
+        html = re.sub(r'(<link rel="canonical" href=")[^"]*', rf"\g<1>{canonical}", html)
+        html = re.sub(r'(<meta property="og:title" content=")[^"]*', rf"\g<1>{title} · Network Football Elo", html)
+        html = re.sub(r'(<meta property="og:description" content=")[^"]*', rf"\g<1>{description}", html)
+        html = re.sub(r'(<meta property="og:url" content=")[^"]*', rf"\g<1>{canonical}", html)
+        html = re.sub(r'(<meta name="twitter:title" content=")[^"]*', rf"\g<1>{title} · Network Football Elo", html)
+        html = re.sub(r'(<meta name="twitter:description" content=")[^"]*', rf"\g<1>{description}", html)
+        target = output / path / "index.html"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(html, encoding="utf-8")
+        urls.append(canonical)
+    (output / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "".join(f"  <url><loc>{url}</loc></url>\n" for url in urls)
+        + "</urlset>\n",
+        encoding="utf-8",
+    )
+
+
 def build_fixtures(source: Path, output: Any) -> dict[str, Any]:
     path = source / "upcoming_fixtures.json"
     if not path.exists():
@@ -220,6 +264,17 @@ def main() -> None:
             }
         )
     write_json(data / "matches" / "index.json", {"decades": match_index})
+    write_json(data / "matches" / "search.json", {
+        "matches": [
+            {
+                "id": match["id"], "date": match["date"], "year": match["year"],
+                "a": match["a"], "b": match["b"], "an": match["an"], "bn": match["bn"],
+                "ac": match["ac"], "bc": match["bc"], "t": match["t"],
+                "level": match["level"], "decade": int(match["year"]) // 10 * 10,
+            }
+            for match in output.matches
+        ]
+    })
 
     for code, page in output.team_pages.items():
         write_json(data / "teams" / f"{code}.json", page)
@@ -251,6 +306,7 @@ def main() -> None:
     )
 
     version_browser_assets(args.output)
+    write_route_entries(args.output, output.summary)
     (args.output / ".nojekyll").write_text("", encoding="utf-8")
     shutil.copyfile(args.config / "404.html", args.output / "404.html")
     manifest_files = [

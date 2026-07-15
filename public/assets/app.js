@@ -34,8 +34,9 @@
     return Number.isNaN(parsed.valueOf()) ? value : `${day}/${month}/${year}`;
   };
   const fixtureDate = (fixture) => fixture.date_precision === "month"
-    ? new Date(`${fixture.date}T00:00:00Z`).toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase()
+    ? `Date TBC · ${new Date(`${fixture.date}T00:00:00Z`).toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase()}`
     : validDate(fixture.date);
+  const fixtureSite = (fixture) => Number(fixture.home_sign) === 1 ? "H" : Number(fixture.home_sign) === -1 ? "A" : "N";
   const validTimestamp = (value) => {
     const parsed = new Date(value);
     return Number.isNaN(parsed.valueOf())
@@ -47,6 +48,16 @@
   };
   const teamURL = (code, date = "") => `#/team/${encodeURIComponent(code)}${date ? `?date=${encodeURIComponent(date)}` : ""}`;
   const teamLink = (code, name, date = "") => `<a class="team-link" href="${teamURL(code, date)}">${escapeHTML(name)}</a>`;
+  const cleanRouteURL = (section, value = "", query = new URLSearchParams()) => {
+    const path = [section === "home" ? "" : section, value].filter(Boolean).map(encodeURIComponent).join("/");
+    const suffix = query.toString();
+    return `${new URL(path ? `${path}/` : "", document.baseURI).pathname}${suffix ? `?${suffix}` : ""}`;
+  };
+  const replaceRouteQuery = (section, values) => {
+    const query = new URLSearchParams();
+    Object.entries(values).forEach(([key, value]) => { if (value !== "" && value != null) query.set(key, value); });
+    history.replaceState(null, "", cleanRouteURL(section, "", query));
+  };
 
   async function getJSON(path) {
     if (!dataCache.has(path)) {
@@ -62,8 +73,34 @@
     document.title = title ? `${title} · Network Football Elo` : "Network Football Elo";
   }
 
+  function setRouteMetadata(route) {
+    const descriptions = {
+      home: "International football ratings, historical results, records and match probabilities from 1872 to the present.",
+      rankings: "Current international football rankings from the Network Football Elo model.",
+      history: "Reconstruct international football rankings on any historical matchday.",
+      matches: "Search international football results and pre-match forecasts from 1872 onward.",
+      fixtures: "Upcoming senior internationals with current ratings and match probabilities.",
+      records: "All-time national-team rating peaks, greatest matchups and largest upsets.",
+      predict: "Compare two national teams and calculate win, draw and loss probabilities.",
+      methodology: "Detailed, reproducible methodology for the Network Football Elo model.",
+      about: "Data sources, update schedule and limitations of Network Football Elo.",
+      team: `${document.querySelector("h1")?.textContent || "National team"} ratings, results and historical record.`,
+    };
+    const description = descriptions[route.section] || descriptions.home;
+    const canonical = new URL(cleanRouteURL(route.section, route.value, route.query), location.origin).href;
+    document.querySelector('meta[name="description"]')?.setAttribute("content", description);
+    document.querySelector('link[rel="canonical"]')?.setAttribute("href", canonical);
+    document.querySelector('meta[property="og:title"]')?.setAttribute("content", document.title);
+    document.querySelector('meta[property="og:description"]')?.setAttribute("content", description);
+    document.querySelector('meta[property="og:url"]')?.setAttribute("content", canonical);
+    document.querySelector('meta[name="twitter:title"]')?.setAttribute("content", document.title);
+    document.querySelector('meta[name="twitter:description"]')?.setAttribute("content", description);
+  }
+
   function parseRoute() {
-    const raw = location.hash.startsWith("#/") ? location.hash.slice(2) : "";
+    const basePath = new URL(document.baseURI).pathname.replace(/\/?$/, "/");
+    const pathRoute = location.pathname.startsWith(basePath) ? location.pathname.slice(basePath.length).replace(/^\/|\/$/g, "") : "";
+    const raw = location.hash.startsWith("#/") ? location.hash.slice(2) : `${pathRoute}${location.search}`;
     const [path, query = ""] = raw.split("?");
     const parts = path.split("/").filter(Boolean).map(decodeURIComponent);
     return { section: parts[0] || "home", value: parts[1] || "", query: new URLSearchParams(query) };
@@ -168,7 +205,7 @@
     return `<div class="table-shell"><table>
       <thead><tr><th class="numeric">Rank</th><th>Team</th><th class="numeric">Rating</th><th class="numeric hide-mobile">Model strength</th><th class="numeric hide-mobile">Matches</th><th>Recent form</th><th class="hide-mobile">All-time peak</th></tr></thead>
       <tbody>${items.map((team, index) => `<tr>
-        <td class="rank-cell numeric">${showRank && team.rank ? team.rank : index + 1}</td>
+        <td class="rank-cell numeric">${showRank ? team.display_rank ?? team.rank ?? index + 1 : index + 1}</td>
         <td>${teamLink(team.code, team.nation)}</td>
         <td class="numeric"><span class="rating-main">${rating(team.rating)}</span><span class="rating-sub">uncertainty ${rating(team.se)}</span></td>
         <td class="numeric hide-mobile">${rating(team.mean)}</td>
@@ -179,33 +216,46 @@
     </table></div>`;
   }
 
-  function renderRankings() {
+  function renderRankings(route) {
     setTitle("Rankings");
     content.innerHTML = `
       <div class="page">
         <header class="page-heading"><div><p class="eyebrow">Current international teams</p><h1>Rankings</h1></div><p class="lede">The rating combines estimated playing strength with an allowance for uncertainty. Teams with results against a broad range of opponents can therefore be assessed more confidently. <a href="#/history">Choose a historical date →</a></p></header>
         <div class="toolbar">
-          <div class="field field-grow"><label for="ranking-search">Find a team</label><input id="ranking-search" type="search" placeholder="Spain, Argentina, Japan…"></div>
+          <div class="field field-grow"><label for="ranking-search">Find a team</label><input id="ranking-search" type="search" placeholder="Spain, Argentina, Japan…" value="${escapeHTML(route.query.get("q") || "")}"></div>
           <div class="field"><label for="ranking-sort">Sort</label><select id="ranking-sort"><option value="rating">Rating</option><option value="mean">Model strength</option><option value="matches">Matches played</option><option value="name">Name</option></select></div>
-          <div class="toggle-group" aria-label="Ranking pool"><button class="button button-dark" data-pool="current" aria-pressed="true">Current</button><button class="button" data-pool="all" aria-pressed="false">All histories</button></div>
+          <div class="toggle-group" role="group" aria-label="Ranking pool"><button class="button" data-pool="current" aria-pressed="false">Current</button><button class="button" data-pool="all" aria-pressed="false">All histories</button></div>
         </div>
         <div class="record-note"><strong>Rating</strong><div>The published rating is the model's strength estimate adjusted for the range of opponents played and the uncertainty in that estimate. A team must have played at least 30 matches and appeared within the last four years to enter the current table.</div></div>
         <div id="rankings-table"></div>
       </div>`;
     const target = document.getElementById("rankings-table");
-    let pool = "current";
+    let pool = route.query.get("pool") === "all" ? "all" : "current";
+    const requestedSort = ["rating", "mean", "matches", "name"].includes(route.query.get("sort")) ? route.query.get("sort") : "rating";
+    document.getElementById("ranking-sort").value = requestedSort;
+    document.querySelectorAll("[data-pool]").forEach((button) => {
+      const selected = button.dataset.pool === pool;
+      button.setAttribute("aria-pressed", String(selected));
+      button.classList.toggle("button-dark", selected);
+    });
+    const save = () => replaceRouteQuery("rankings", {
+      q: document.getElementById("ranking-search").value.trim(),
+      sort: document.getElementById("ranking-sort").value === "rating" ? "" : document.getElementById("ranking-sort").value,
+      pool: pool === "current" ? "" : pool,
+    });
     const update = () => {
       const query = document.getElementById("ranking-search").value.trim().toLocaleLowerCase();
       const sort = document.getElementById("ranking-sort").value;
       const source = pool === "current" ? summary.current : summary.teams;
+      const ratingRanks = new Map([...source].sort((a, b) => b.rating - a.rating || a.nation.localeCompare(b.nation)).map((team, index) => [team.code, index + 1]));
       const filtered = source.filter((team) => team.nation.toLocaleLowerCase().includes(query));
       filtered.sort((a, b) => sort === "name"
         ? a.nation.localeCompare(b.nation)
         : (b[sort] ?? -Infinity) - (a[sort] ?? -Infinity) || a.nation.localeCompare(b.nation));
-      target.innerHTML = rankingsTable(filtered, pool === "current" && sort === "rating" && !query);
+      target.innerHTML = rankingsTable(filtered.map((team) => ({ ...team, display_rank: ratingRanks.get(team.code) })), true);
     };
-    document.getElementById("ranking-search").addEventListener("input", update);
-    document.getElementById("ranking-sort").addEventListener("change", update);
+    document.getElementById("ranking-search").addEventListener("input", () => { save(); update(); });
+    document.getElementById("ranking-sort").addEventListener("change", () => { save(); update(); });
     document.querySelectorAll("[data-pool]").forEach((button) => button.addEventListener("click", () => {
       pool = button.dataset.pool;
       document.querySelectorAll("[data-pool]").forEach((peer) => {
@@ -213,6 +263,7 @@
         peer.setAttribute("aria-pressed", String(selected));
         peer.classList.toggle("button-dark", selected);
       });
+      save();
       update();
     }));
     update();
@@ -222,7 +273,7 @@
     if (!items.length) return `<div class="empty"><h2>No eligible rankings yet</h2><p>Teams enter the table after their 30th recorded match.</p></div>`;
     return `<div class="table-hint" aria-hidden="true">Swipe to see more →</div><div class="table-shell"><table>
       <thead><tr><th class="numeric">Rank</th><th>Team</th><th class="numeric">Rating</th><th class="numeric hide-mobile">Model strength</th><th class="numeric hide-mobile">Matches</th><th>Recent form</th><th class="hide-mobile">Last match</th></tr></thead>
-      <tbody>${items.map((team, index) => `<tr><td class="rank-cell numeric">${index + 1}</td><td>${teamLink(team.code, team.nation, selectedDate)}</td>
+      <tbody>${items.map((team, index) => `<tr><td class="rank-cell numeric">${team.rank ?? index + 1}</td><td>${teamLink(team.code, team.nation, selectedDate)}</td>
         <td class="numeric"><span class="rating-main">${rating(team.rating)}</span><span class="rating-sub">uncertainty ${rating(team.se)}</span></td>
         <td class="numeric hide-mobile">${rating(team.mean)}</td><td class="numeric hide-mobile">${number(team.matches)}</td>
         <td>${formHTML(team.form || [])}</td><td class="hide-mobile">${validDate(team.date)}</td></tr>`).join("")}</tbody></table></div>`;
@@ -242,7 +293,7 @@
         <div class="field field-grow"><label for="history-world-cup">World Cup moments</label><select id="history-world-cup"><option value="">Choose a tournament…</option>${index.world_cups.flatMap((cup) => [`<option value="${cup.before}">Before ${cup.year} World Cup</option>`, `<option value="${cup.after}">After ${cup.year} World Cup</option>`]).join("")}</select></div>
       </div>
       <div class="record-note"><strong id="history-count">—</strong><div><b id="history-label">Eligible teams</b><br>At least 30 matches and an appearance in the selected year or preceding four calendar years.</div></div>
-      <div class="toolbar compact-toolbar"><div class="field field-grow"><label for="history-search">Find a team</label><input id="history-search" type="search" placeholder="Brazil, Hungary, Morocco…"></div><div class="field"><label for="history-sort">Sort</label><select id="history-sort"><option value="rating">Rating</option><option value="mean">Model strength</option><option value="matches">Matches played</option><option value="name">Name</option></select></div></div>
+      <div class="toolbar compact-toolbar"><div class="field field-grow"><label for="history-search">Find a team</label><input id="history-search" type="search" placeholder="Brazil, Hungary, Morocco…" value="${escapeHTML(route.query.get("q") || "")}"></div><div class="field"><label for="history-sort">Sort</label><select id="history-sort"><option value="rating">Rating</option><option value="mean">Model strength</option><option value="matches">Matches played</option><option value="name">Name</option></select></div></div>
       <div id="history-table"></div></div>`;
 
     let teams = [];
@@ -250,6 +301,13 @@
     const dateInput = document.getElementById("history-date");
     const calendarInput = document.getElementById("history-calendar");
     const table = document.getElementById("history-table");
+    const requestedSort = ["rating", "mean", "matches", "name"].includes(route.query.get("sort")) ? route.query.get("sort") : "rating";
+    document.getElementById("history-sort").value = requestedSort;
+    const saveHistoryRoute = () => replaceRouteQuery("history", {
+      date: currentDate,
+      q: document.getElementById("history-search").value.trim(),
+      sort: document.getElementById("history-sort").value === "rating" ? "" : document.getElementById("history-sort").value,
+    });
     const updateTable = () => {
       const query = document.getElementById("history-search").value.trim().toLocaleLowerCase();
       const sort = document.getElementById("history-sort").value;
@@ -263,7 +321,7 @@
       dateInput.value = validDate(chosen);
       calendarInput.value = chosen;
       document.getElementById("history-date-error").textContent = "";
-      history.replaceState(null, "", `#/history?date=${chosen}`);
+      saveHistoryRoute();
       table.innerHTML = `<div class="loading-shell"><span class="spinner"></span><p>Loading ${escapeHTML(validDate(chosen))}…</p></div>`;
       const payload = await getJSON(`data/rankings-history/${chosen.slice(0, 4)}.json`);
       const state = new Map(payload.opening.map((team) => [team.code, team]));
@@ -271,6 +329,7 @@
       const year = Number(chosen.slice(0, 4));
       teams = [...state.values()].filter((team) => year - Number(team.date.slice(0, 4)) <= 4);
       teams.sort((a, b) => b.rating - a.rating || a.nation.localeCompare(b.nation));
+      teams.forEach((team, index) => { team.rank = index + 1; });
       document.getElementById("history-count").textContent = number(teams.length);
       document.getElementById("history-label").textContent = `Eligible teams on ${validDate(chosen)}`;
       updateTable();
@@ -307,8 +366,8 @@
     document.getElementById("history-prev").addEventListener("click", () => adjacentMatchday(-1));
     document.getElementById("history-next").addEventListener("click", () => adjacentMatchday(1));
     document.getElementById("history-world-cup").addEventListener("change", (event) => { if (event.target.value) loadDate(event.target.value); });
-    document.getElementById("history-search").addEventListener("input", updateTable);
-    document.getElementById("history-sort").addEventListener("change", updateTable);
+    document.getElementById("history-search").addEventListener("input", () => { saveHistoryRoute(); updateTable(); });
+    document.getElementById("history-sort").addEventListener("change", () => { saveHistoryRoute(); updateTable(); });
     await loadDate(selected);
   }
 
@@ -322,10 +381,10 @@
       <div class="page">
         <header class="page-heading"><div><p class="eyebrow">International results since 1872</p><h1>Matches</h1></div><p class="lede">Browse the complete match history. Probabilities and ratings are calculated using only information available before each match.</p></header>
         <div class="toolbar">
-          <div class="field"><label for="match-decade">Era</label><select id="match-decade"><option value="all">All ${number(summary.meta.matches)} matches</option>${index.decades.slice().reverse().map((item) => `<option value="${item.decade}" ${item.decade === latest ? "selected" : ""}>${item.decade}s · ${number(item.count)}</option>`).join("")}</select></div>
+          <div class="field"><label for="match-decade">Era</label><select id="match-decade"><option value="all">All ${number(summary.meta.matches)} matches</option>${index.decades.slice().reverse().map((item) => `<option value="${item.decade}">${item.decade}s · ${number(item.count)}</option>`).join("")}</select></div>
           <div class="field"><label for="match-team">Team</label><select id="match-team"><option value="">Any team</option>${summary.teams.map((team) => `<option value="${escapeHTML(team.code)}" ${team.code === requestedTeam ? "selected" : ""}>${escapeHTML(team.nation)}</option>`).join("")}</select></div>
           <div class="field"><label for="match-class">Class</label><select id="match-class"><option value="">All classes</option><option value="friendly">Friendly</option><option value="competitive">Competitive</option></select></div>
-          <div class="field field-grow"><label for="match-search">Competition or opponent</label><input id="match-search" type="search" placeholder="World Cup, England, qualifier…"></div>
+          <div class="field field-grow"><label for="match-search">Competition or opponent</label><input id="match-search" type="search" placeholder="World Cup, England, qualifier…" value="${escapeHTML(route.query.get("q") || "")}"></div>
         </div>
         <p id="match-count" class="muted small"></p>
         <div class="pagination match-pagination" aria-label="Match pages">
@@ -339,19 +398,28 @@
       </div>`;
 
     let rows = [];
-    let page = 0;
+    let page = Math.max(0, Number(route.query.get("page") || 1) - 1) || 0;
     const pageSize = 100;
+    const validDecades = new Set(index.decades.map((item) => String(item.decade)));
+    const initialDecade = route.query.get("era") === "all" || validDecades.has(route.query.get("era")) ? route.query.get("era") : String(latest);
+    document.getElementById("match-decade").value = initialDecade;
+    if (route.query.get("class") === "friendly" || route.query.get("class") === "competitive") document.getElementById("match-class").value = route.query.get("class");
+    const saveMatchesRoute = () => replaceRouteQuery("matches", {
+      era: document.getElementById("match-decade").value === String(latest) ? "" : document.getElementById("match-decade").value,
+      team: document.getElementById("match-team").value,
+      class: document.getElementById("match-class").value,
+      q: document.getElementById("match-search").value.trim(),
+      page: page ? page + 1 : "",
+    });
     const load = async () => {
       const decade = document.getElementById("match-decade").value;
       loadingTable();
       if (decade === "all") {
-        const chunks = await Promise.all(index.decades.map((item) => getJSON(`data/matches/${item.file}`)));
-        rows = chunks.flatMap((chunk) => chunk.matches).reverse();
+        rows = (await getJSON("data/matches/search.json")).matches.slice().reverse();
       } else {
         rows = (await getJSON(`data/matches/${decade}.json`)).matches.slice().reverse();
       }
-      page = 0;
-      update();
+      await update();
     };
     const loadingTable = () => { document.getElementById("match-table").innerHTML = `<div class="loading-shell"><span class="spinner"></span><p>Loading matches…</p></div>`; };
     const filtered = () => {
@@ -366,7 +434,9 @@
         return true;
       });
     };
-    const update = () => {
+    let updateToken = 0;
+    const update = async () => {
+      const token = ++updateToken;
       const result = filtered();
       const pages = Math.max(1, Math.ceil(result.length / pageSize));
       page = Math.min(page, pages - 1);
@@ -377,9 +447,19 @@
       document.getElementById("match-next").disabled = page >= pages - 1;
       document.getElementById("match-newest").disabled = page === 0;
       document.getElementById("match-oldest").disabled = page >= pages - 1;
-      document.getElementById("match-table").innerHTML = matchTable(visible);
+      let hydrated = visible;
+      if (document.getElementById("match-decade").value === "all" && visible.length) {
+        loadingTable();
+        const decades = [...new Set(visible.map((match) => match.decade))];
+        const chunks = await Promise.all(decades.map((decade) => getJSON(`data/matches/${decade}.json`)));
+        if (token !== updateToken) return;
+        const byId = new Map(chunks.flatMap((chunk) => chunk.matches).map((match) => [match.id, match]));
+        hydrated = visible.map((match) => byId.get(match.id)).filter(Boolean);
+      }
+      document.getElementById("match-table").innerHTML = matchTable(hydrated);
+      saveMatchesRoute();
     };
-    document.getElementById("match-decade").addEventListener("change", load);
+    document.getElementById("match-decade").addEventListener("change", () => { page = 0; load(); });
     document.getElementById("match-team").addEventListener("change", () => { page = 0; update(); });
     document.getElementById("match-class").addEventListener("change", () => { page = 0; update(); });
     document.getElementById("match-search").addEventListener("input", () => { page = 0; update(); });
@@ -421,7 +501,7 @@
     </tr>`).join("")}</tbody></table></div>`;
   }
 
-  function renderRecords() {
+  function renderRecords(route) {
     setTitle("Records");
     content.innerHTML = `
       <div class="page">
@@ -431,8 +511,13 @@
         <div id="record-table"></div>
         <div class="pagination"><span id="record-count" class="muted small"></span><button id="record-more" class="button">Show more</button></div>
       </div>`;
-    let view = "peaks";
-    let shown = 25;
+    let view = ["peaks", "matches", "upsets"].includes(route.query.get("view")) ? route.query.get("view") : "peaks";
+    let shown = Math.max(25, Number(route.query.get("shown") || 25)) || 25;
+    document.querySelectorAll("[data-record]").forEach((button) => {
+      const active = button.dataset.record === view;
+      button.setAttribute("aria-pressed", String(active));
+      button.classList.toggle("button-dark", active);
+    });
     const update = () => {
       const source = view === "peaks" ? summary.peaks : view === "matches" ? summary.top_matches : summary.upsets;
       const visible = source.slice(0, shown);
@@ -444,6 +529,7 @@
       document.getElementById("record-table").innerHTML = view === "peaks" ? peakTable(visible) : view === "matches" ? matchRecordTable(visible) : upsetTable(visible);
       document.getElementById("record-count").textContent = `Showing ${number(visible.length)} of ${number(source.length)}`;
       document.getElementById("record-more").hidden = shown >= source.length;
+      replaceRouteQuery("records", { view: view === "peaks" ? "" : view, shown: shown > 25 ? shown : "" });
     };
     document.querySelectorAll("[data-record]").forEach((button) => button.addEventListener("click", () => {
       view = button.dataset.record;
@@ -459,24 +545,44 @@
     update();
   }
 
-  async function renderFixtures() {
+  async function renderFixtures(route) {
     setTitle("Upcoming matches");
     loading("Loading upcoming internationals…");
     const payload = await getJSON("data/fixtures.json");
     const fixtures = payload.fixtures || [];
+    const competitions = [...new Set(fixtures.map((fixture) => fixture.tournament_name))].sort((a, b) => a.localeCompare(b));
     content.innerHTML = `
       <div class="page">
         <header class="page-heading"><div><p class="eyebrow">Scheduled senior internationals</p><h1>Upcoming matches</h1></div><p class="lede">Validated fixtures from multiple public schedules, paired with probabilities from the current ratings. W and L are from the perspective of the first-listed team.</p></header>
         <div class="record-note"><strong>${number(fixtures.length)}</strong><div><b>Known future pairings.</b> Placeholder knockout matches remain hidden until both teams are identified. Feed checked ${validTimestamp(payload.checked_at)}.</div></div>
-        ${fixtures.length ? `<div class="table-shell fixture-table"><table><thead><tr><th>Date</th><th>Match</th><th class="numeric">Combined rating</th><th>W / D / L</th><th class="hide-mobile">Competition</th><th class="hide-mobile">Location</th></tr></thead><tbody>${fixtures.map((fixture) => `<tr>
-          <td>${fixtureDate(fixture)}</td>
-          <td data-label="Match">${teamLink(fixture.team1_code, fixture.team1_name)} <span class="muted">v</span> ${teamLink(fixture.team2_code, fixture.team2_name)}<span class="rating-sub">${rating(fixture.rating1)} + ${rating(fixture.rating2)}</span></td>
-          <td class="numeric" data-label="Combined"><span class="rating-main">${rating(fixture.combined_rating)}</span></td>
-          <td>${probabilityHTML(fixture.probabilities)}</td>
-          <td class="hide-mobile" data-label="Competition">${escapeHTML(fixture.tournament_name)}</td>
-          <td class="hide-mobile" data-label="Location">${escapeHTML([fixture.city, fixture.country].filter(Boolean).join(", "))}${fixture.neutral ? `<span class="rating-sub">neutral venue</span>` : ""}</td>
-        </tr>`).join("")}</tbody></table></div>` : `<div class="empty"><h2>No identified fixtures in the feed.</h2><p>Future knockout placeholders appear after both participants are known.</p></div>`}
+        <div class="toolbar"><div class="field field-grow"><label for="fixture-search">Team or competition</label><input id="fixture-search" type="search" placeholder="Vietnam, friendly, AFCON…" value="${escapeHTML(route.query.get("q") || "")}"></div><div class="field"><label for="fixture-competition">Competition</label><select id="fixture-competition"><option value="">All competitions</option>${competitions.map((name) => `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join("")}</select></div></div>
+        <p id="fixture-count" class="muted small"></p>
+        <div id="fixture-table"></div>
+        <div class="pagination"><span id="fixture-page" class="muted small" aria-live="polite"></span><button id="fixture-more" class="button">Show more</button></div>
       </div>`;
+    let shown = Math.max(50, Number(route.query.get("shown") || 50)) || 50;
+    const requestedCompetition = route.query.get("competition") || "";
+    if (competitions.includes(requestedCompetition)) document.getElementById("fixture-competition").value = requestedCompetition;
+    const update = () => {
+      const query = document.getElementById("fixture-search").value.trim().toLocaleLowerCase();
+      const competition = document.getElementById("fixture-competition").value;
+      const filtered = fixtures.filter((fixture) => {
+        if (competition && fixture.tournament_name !== competition) return false;
+        return !query || `${fixture.team1_name} ${fixture.team2_name} ${fixture.tournament_name}`.toLocaleLowerCase().includes(query);
+      });
+      const visible = filtered.slice(0, shown);
+      document.getElementById("fixture-count").textContent = `${number(filtered.length)} matching fixtures`;
+      document.getElementById("fixture-page").textContent = `Showing ${number(visible.length)} of ${number(filtered.length)}`;
+      document.getElementById("fixture-more").hidden = visible.length >= filtered.length;
+      document.getElementById("fixture-table").innerHTML = visible.length ? `<div class="table-shell fixture-table"><table><thead><tr><th>Date</th><th>Match</th><th>H/A/N</th><th class="numeric">Combined rating</th><th>W / D / L</th><th class="hide-mobile">Competition</th><th class="hide-mobile">Location</th></tr></thead><tbody>${visible.map((fixture) => `<tr>
+        <td>${fixtureDate(fixture)}</td><td data-label="Match">${teamLink(fixture.team1_code, fixture.team1_name)} <span class="muted">v</span> ${teamLink(fixture.team2_code, fixture.team2_name)}<span class="rating-sub">${rating(fixture.rating1)} + ${rating(fixture.rating2)}</span></td><td data-label="Venue">${venueHTML(fixtureSite(fixture))}</td><td class="numeric" data-label="Combined"><span class="rating-main">${rating(fixture.combined_rating)}</span></td><td data-label="Forecast">${probabilityHTML(fixture.probabilities)}</td><td class="hide-mobile" data-label="Competition">${escapeHTML(fixture.tournament_name)}</td><td class="hide-mobile" data-label="Location">${escapeHTML([fixture.city, fixture.country].filter(Boolean).join(", "))}${fixture.neutral ? `<span class="rating-sub">neutral venue</span>` : ""}</td>
+      </tr>`).join("")}</tbody></table></div>` : `<div class="empty"><h2>No fixtures match those filters.</h2></div>`;
+      replaceRouteQuery("fixtures", { q: document.getElementById("fixture-search").value.trim(), competition, shown: shown > 50 ? shown : "" });
+    };
+    document.getElementById("fixture-search").addEventListener("input", () => { shown = 50; update(); });
+    document.getElementById("fixture-competition").addEventListener("change", () => { shown = 50; update(); });
+    document.getElementById("fixture-more").addEventListener("click", () => { shown += 50; update(); });
+    update();
   }
 
   async function renderPredict() {
@@ -597,6 +703,7 @@
     const history = cutoff ? page.history.filter((point) => point.date <= cutoff) : page.history;
     const availableMatches = cutoff ? page.matches.filter((match) => match.date <= cutoff) : page.matches;
     const latestPoint = history.length ? history[history.length - 1] : null;
+    const displayName = cutoff && latestPoint?.historical_name ? latestPoint.historical_name : team.nation;
     const historicalStats = availableMatches.reduce((stats, match) => {
       stats.matches += 1;
       stats.gf += match.gf;
@@ -605,17 +712,17 @@
       return stats;
     }, { matches: 0, gf: 0, ga: 0, W: 0, D: 0, L: 0 });
     const historicalPeak = history.length ? history.reduce((best, point) => point.rating > best.rating ? point : best, history[0]) : null;
-    setTitle(team.nation);
+    setTitle(displayName);
     content.innerHTML = `
       <div class="page">
         <section class="team-hero">
-          <div><p class="eyebrow">${cutoff ? `Historical record through ${validDate(cutoff)}` : team.rank ? `Current world no. ${team.rank}` : "Historical team record"}</p><h1>${escapeHTML(team.nation)}</h1></div>
+          <div><p class="eyebrow">${cutoff ? `Historical record through ${validDate(cutoff)}` : team.rank ? `Current world no. ${team.rank}` : "Historical team record"}</p><h1>${escapeHTML(displayName)}</h1>${cutoff && displayName !== team.nation ? `<p class="muted">Part of the continuous ${escapeHTML(team.nation)} rating history</p>` : ""}</div>
           <div class="team-rating"><strong>${rating(cutoff ? latestPoint?.rating : team.rating)}</strong><span>${cutoff && latestPoint ? `after ${validDate(latestPoint.date)} · ` : ""}uncertainty ${rating(cutoff ? latestPoint?.se : team.se)}</span></div>
         </section>
         <div class="team-stats">
           <div><span>Matches</span><strong>${number(cutoff ? historicalStats.matches : team.matches)}</strong></div><div><span>Record</span><strong>${cutoff ? `${historicalStats.W}–${historicalStats.D}–${historicalStats.L}` : `${team.wins}–${team.draws}–${team.losses}`}</strong></div><div><span>Goals</span><strong>${cutoff ? `${historicalStats.gf}–${historicalStats.ga}` : `${team.gf}–${team.ga}`}</strong></div><div><span>${cutoff ? "Latest match" : "Opponent breadth"}</span><strong>${cutoff ? (availableMatches.length ? validDate(availableMatches[0].date) : "—") : number(team.breadth, 1)}</strong></div><div><span>${cutoff ? "Peak by date" : "All-time peak"}</span><strong>${rating(cutoff ? historicalPeak?.rating : team.peak?.rating)}</strong></div>
         </div>
-        <section class="section"><div class="section-heading"><div><p class="eyebrow">Rating after each match</p><h2>Rating history${cutoff ? ` to ${validDate(cutoff)}` : ""}</h2></div></div>${ratingChart(history, team.nation)}</section>
+        <section class="section"><div class="section-heading"><div><p class="eyebrow">Rating after each match</p><h2>Rating history${cutoff ? ` to ${validDate(cutoff)}` : ""}</h2></div></div>${ratingChart(history, displayName)}</section>
         <section class="section"><div class="section-heading"><div><p class="eyebrow">${cutoff ? "Matches through selected date" : "Complete match history"}</p><h2>Matches</h2></div><a class="button button-quiet" href="#/matches?team=${encodeURIComponent(team.code)}">Open in explorer →</a></div><div id="team-matches"></div><div class="pagination"><span id="team-count" class="muted small"></span><button id="team-more" class="button">Show more</button></div></section>
       </div>`;
     let shown = 100;
@@ -729,17 +836,20 @@
       if (!summary) [summary, catalog] = await Promise.all([getJSON("data/summary.json"), getJSON("data/catalog.json")]);
       switch (current.section) {
         case "home": await renderHome(); break;
-        case "rankings": renderRankings(); break;
+        case "rankings": renderRankings(current); break;
         case "history": await renderHistory(current); break;
         case "matches": await renderMatches(current); break;
-        case "fixtures": await renderFixtures(); break;
-        case "records": renderRecords(); break;
+        case "fixtures": await renderFixtures(current); break;
+        case "records": renderRecords(current); break;
         case "predict": await renderPredict(); break;
         case "team": current.value ? await renderTeam(current.value, current.query) : renderNotFound(); break;
         case "methodology": renderMethodology(); break;
         case "about": renderAbout(); break;
         default: renderNotFound();
       }
+      setRouteMetadata(current);
+      if (location.hash.startsWith("#/")) history.replaceState(null, "", cleanRouteURL(current.section, current.value, current.query));
+      content.focus({ preventScroll: true });
     } catch (error) {
       console.error(error);
       content.innerHTML = `<div class="error-panel" role="alert"><p class="eyebrow">Build data unavailable</p><h2>The static rating files could not be loaded.</h2><p>${escapeHTML(error.message)}</p><button class="button button-dark" type="button" id="retry">Retry</button></div>`;
@@ -756,6 +866,13 @@
     if (nav.classList.contains("is-open") && !nav.contains(event.target) && event.target !== menuButton) {
       nav.classList.remove("is-open");
       menuButton.setAttribute("aria-expanded", "false");
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && nav.classList.contains("is-open")) {
+      nav.classList.remove("is-open");
+      menuButton.setAttribute("aria-expanded", "false");
+      menuButton.focus();
     }
   });
   window.addEventListener("hashchange", route);

@@ -357,7 +357,7 @@ td.numeric, th.numeric { text-align: right; font-variant-numeric: tabular-nums; 
   .fixture-table td:first-child { grid-column: 1 / -1; color: var(--ink-soft); font-size: 12px; font-weight: 750; }
   .fixture-table td[data-label="Match"] { font-size: 17px; }
   .fixture-table td[data-label="Combined"] { text-align: right; }
-  .fixture-table td:nth-child(4) { grid-column: 1 / -1; }
+  .fixture-table td[data-label="Forecast"] { grid-column: 1 / -1; }
   .fixture-table td[data-label="Competition"], .fixture-table td[data-label="Location"] { grid-column: 1 / -1; color: var(--ink-soft); font-size: 12px; }
   .fixture-table td[data-label]::before, .match-history-table td[data-label]::before, .team-match-table td[data-label]::before { display: block; margin-bottom: 3px; color: var(--ink-soft); font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; content: attr(data-label); }
   .fixture-table td[data-label="Match"]::before, .match-history-table td[data-label="Match"]::before, .team-match-table td[data-label="Opponent"]::before, .match-history-table td[data-label="Date"]::before, .team-match-table td[data-label="Date"]::before { display: none; }

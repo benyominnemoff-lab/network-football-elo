@@ -72,12 +72,29 @@ class StaticBuildTests(unittest.TestCase):
                 self.assertNotIn(match["id"], ids)
                 ids.add(match["id"])
         self.assertEqual(total, self.summary["meta"]["matches"])
+        search = json.loads((self.data / "matches" / "search.json").read_text(encoding="utf-8"))["matches"]
+        self.assertEqual(len(search), total)
+        self.assertEqual(len({match["id"] for match in search}), total)
 
     def test_team_match_venue_codes(self) -> None:
         for code in ("AR", "EN", "JP"):
             page = json.loads((self.data / "teams" / f"{code}.json").read_text(encoding="utf-8"))
             self.assertTrue(page["matches"])
             self.assertTrue(all(match["site"] in {"H", "A", "N"} for match in page["matches"]))
+
+    def test_team_matches_use_names_from_the_match_date(self) -> None:
+        germany = json.loads((self.data / "teams" / "DE.json").read_text(encoding="utf-8"))
+        self.assertIn("West Germany", {match["team_name"] for match in germany["matches"]})
+        historical_opponents = {
+            match["opponent"]
+            for code in ("DE", "EN", "FR")
+            for match in json.loads(
+                (self.data / "teams" / f"{code}.json").read_text(encoding="utf-8")
+            )["matches"]
+        }
+        self.assertTrue(
+            historical_opponents.intersection({"USSR", "Czechoslovakia", "Yugoslavia"})
+        )
 
     def test_probability_swap_invariance(self) -> None:
         first = three_way_probabilities(137.5, 12_345.0, 2026, friendly=False)
@@ -161,6 +178,17 @@ class StaticBuildTests(unittest.TestCase):
         manifest = json.loads((ROOT / "public" / "build-manifest.json").read_text(encoding="utf-8"))
         self.assertIn("index.html", manifest["files"])
         self.assertIn("data/summary.json", manifest["files"])
+
+    def test_clean_route_entries_have_distinct_metadata(self) -> None:
+        public = ROOT / "public"
+        rankings = (public / "rankings" / "index.html").read_text(encoding="utf-8")
+        argentina = (public / "team" / "AR" / "index.html").read_text(encoding="utf-8")
+        self.assertIn("<title>Rankings · Network Football Elo</title>", rankings)
+        self.assertIn("/network-football-elo/rankings/", rankings)
+        self.assertIn("<title>Argentina · Network Football Elo</title>", argentina)
+        self.assertIn("/network-football-elo/team/AR/", argentina)
+        sitemap = (public / "sitemap.xml").read_text(encoding="utf-8")
+        self.assertIn("/network-football-elo/team/AR/", sitemap)
 
     def test_historical_rankings_are_chunked_by_year(self) -> None:
         index = json.loads((self.data / "rankings-history" / "index.json").read_text(encoding="utf-8"))
