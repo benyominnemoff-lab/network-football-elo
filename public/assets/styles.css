@@ -346,6 +346,7 @@ td.numeric, th.numeric { text-align: right; font-variant-numeric: tabular-nums; 
 .movement-down b { color: #b3473b; }
 .movement-flat b { color: var(--ink-soft); }
 .record-filters { margin-bottom: 18px; }
+.record-filters[hidden] { display: none !important; }
 .comparison-picker { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; gap: 14px; }
 .comparison-picker .team-picker { padding: 18px; }
 .comparison-picker label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 800; }

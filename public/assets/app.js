@@ -660,8 +660,8 @@
         <header class="page-heading"><div><p class="eyebrow">Historical rating records</p><h1>Records</h1></div><p class="lede">Nation peaks show each country's highest rating. Top matches rank individual fixtures by the combined pre-match rating of both teams. Limited or narrowly connected schedules receive an uncertainty adjustment.</p></header>
         <div id="number-one-filters" class="toolbar record-filters" hidden>
           <div class="field field-grow"><label for="number-one-team">Filter nation</label><input id="number-one-team" type="search" placeholder="Brazil, Spain, Germany…" value="${escapeHTML(route.query.get("q") || "")}"></div>
-          <div class="field chronology-only"><label for="number-one-from">From</label><input id="number-one-from" type="date" value="${escapeHTML(route.query.get("from") || "")}"></div>
-          <div class="field chronology-only"><label for="number-one-to">To</label><input id="number-one-to" type="date" value="${escapeHTML(route.query.get("to") || "")}"></div>
+          <div class="field"><label for="number-one-from">From date</label><div class="date-combo"><input id="number-one-from" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/YYYY" value="${route.query.get("from") ? validDate(route.query.get("from")) : ""}" aria-describedby="number-one-from-error"><button class="button" type="button" id="number-one-from-button" aria-label="Open from-date calendar">Calendar</button><input id="number-one-from-calendar" class="native-date-proxy" type="date" min="1872-01-01" max="${summary.meta.results_through}" value="${escapeHTML(route.query.get("from") || "")}" tabindex="-1" aria-hidden="true"></div><span id="number-one-from-error" class="field-error" role="alert"></span></div>
+          <div class="field"><label for="number-one-to">To date</label><div class="date-combo"><input id="number-one-to" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/YYYY" value="${route.query.get("to") ? validDate(route.query.get("to")) : ""}" aria-describedby="number-one-to-error"><button class="button" type="button" id="number-one-to-button" aria-label="Open to-date calendar">Calendar</button><input id="number-one-to-calendar" class="native-date-proxy" type="date" min="1872-01-01" max="${summary.meta.results_through}" value="${escapeHTML(route.query.get("to") || "")}" tabindex="-1" aria-hidden="true"></div><span id="number-one-to-error" class="field-error" role="alert"></span></div>
         </div>
         <div class="record-tabs"><button class="button button-dark" data-record="peaks" aria-pressed="true">Nation peaks</button><button class="button" data-record="numberones" aria-pressed="false">No. 1 chronology</button><button class="button" data-record="numberonesummary" aria-pressed="false">No. 1 summary</button><button class="button" data-record="matches" aria-pressed="false">Top matches</button><button class="button" data-record="upsets" aria-pressed="false">Largest upsets</button></div>
         <div id="record-note" class="record-note"></div>
@@ -684,20 +684,38 @@
         upsets: summary.upsets,
       };
       const filterBar = document.getElementById("number-one-filters");
-      const filtering = view === "numberones" || view === "numberonesummary";
+      const filtering = view === "numberones";
       filterBar.hidden = !filtering;
-      filterBar.querySelectorAll(".chronology-only").forEach((field) => { field.hidden = view !== "numberones"; });
       const query = document.getElementById("number-one-team").value.trim().toLocaleLowerCase();
-      const from = document.getElementById("number-one-from").value;
-      const to = document.getElementById("number-one-to").value;
+      const fromInput = document.getElementById("number-one-from");
+      const toInput = document.getElementById("number-one-to");
+      const from = inputDate(fromInput.value);
+      const to = inputDate(toInput.value);
+      const invalidRange = Boolean(from && to && from > to);
+      const fromRangeMessage = "From date cannot be after To date.";
+      const toRangeMessage = "To date cannot be before From date.";
+      const fromError = document.getElementById("number-one-from-error");
+      const toError = document.getElementById("number-one-to-error");
+      if (invalidRange) {
+        fromError.textContent = fromRangeMessage;
+        toError.textContent = toRangeMessage;
+        fromInput.setAttribute("aria-invalid", "true");
+        toInput.setAttribute("aria-invalid", "true");
+      } else {
+        if (fromError.textContent === fromRangeMessage) fromError.textContent = "";
+        if (toError.textContent === toRangeMessage) toError.textContent = "";
+        if (!fromError.textContent) fromInput.removeAttribute("aria-invalid");
+        if (!toError.textContent) toInput.removeAttribute("aria-invalid");
+      }
+      document.getElementById("number-one-from-calendar").max = to || summary.meta.results_through;
+      document.getElementById("number-one-to-calendar").min = from || "1872-01-01";
       const source = sources[view].filter((row) => {
         if (!filtering) return true;
+        if (invalidRange) return false;
         if (query && !row.nation.toLocaleLowerCase().includes(query)) return false;
-        if (view === "numberones") {
-          const end = row.to || summary.meta.results_through;
-          if (from && end < from) return false;
-          if (to && row.from > to) return false;
-        }
+        const end = row.to || summary.meta.results_through;
+        if (from && end < from) return false;
+        if (to && row.from > to) return false;
         return true;
       });
       const visible = source.slice(0, shown);
@@ -726,14 +744,54 @@
         view: view === "peaks" ? "" : view,
         shown: shown > 25 ? shown : "",
         q: filtering ? document.getElementById("number-one-team").value.trim() : "",
-        from: view === "numberones" ? from : "",
-        to: view === "numberones" ? to : "",
+        from: view === "numberones" && !invalidRange ? from : "",
+        to: view === "numberones" && !invalidRange ? to : "",
       });
     };
-    ["number-one-team", "number-one-from", "number-one-to"].forEach((id) => document.getElementById(id).addEventListener("input", () => {
+    document.getElementById("number-one-team").addEventListener("input", () => {
       shown = 25;
       update();
-    }));
+    });
+    const setupNumberOneDate = (prefix) => {
+      const input = document.getElementById(prefix);
+      const calendar = document.getElementById(`${prefix}-calendar`);
+      const errorNode = document.getElementById(`${prefix}-error`);
+      const refreshIfValid = () => {
+        input.value = formatHistoryDateInput(input.value);
+        const error = input.value
+          ? historyDateInputError(input.value, "1872-01-01", summary.meta.results_through)
+          : "";
+        errorNode.textContent = error;
+        if (error) input.setAttribute("aria-invalid", "true");
+        else input.removeAttribute("aria-invalid");
+        const complete = !input.value || Boolean(inputDate(input.value));
+        if (!error && complete) {
+          calendar.value = input.value ? inputDate(input.value) : "";
+          shown = 25;
+          update();
+        }
+      };
+      input.addEventListener("input", refreshIfValid);
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Backspace" && input.selectionStart === input.selectionEnd && [3, 6].includes(input.selectionStart)) {
+          event.preventDefault();
+          const position = input.selectionStart;
+          input.value = `${input.value.slice(0, position - 2)}${input.value.slice(position)}`;
+          refreshIfValid();
+          input.setSelectionRange(position - 2, position - 2);
+        }
+      });
+      document.getElementById(`${prefix}-button`).addEventListener("click", () => {
+        if (typeof calendar.showPicker === "function") calendar.showPicker();
+        else calendar.click();
+      });
+      calendar.addEventListener("change", () => {
+        input.value = calendar.value ? validDate(calendar.value) : "";
+        refreshIfValid();
+      });
+    };
+    setupNumberOneDate("number-one-from");
+    setupNumberOneDate("number-one-to");
     document.querySelectorAll("[data-record]").forEach((button) => button.addEventListener("click", () => {
       view = button.dataset.record;
       shown = 25;

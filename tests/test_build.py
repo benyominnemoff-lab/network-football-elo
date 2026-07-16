@@ -270,6 +270,18 @@ class StaticBuildTests(unittest.TestCase):
         self.assertIn(".comparison-cards", stylesheet)
         self.assertIn("@media (max-width: 720px)", stylesheet)
         self.assertIn(".record-filters", stylesheet)
+        self.assertIn(".record-filters[hidden]", stylesheet)
+        self.assertIn('id="number-one-from" type="text"', javascript)
+        self.assertIn('id="number-one-to" type="text"', javascript)
+        self.assertIn('id="number-one-from-calendar"', javascript)
+        self.assertIn('id="number-one-to-calendar"', javascript)
+        self.assertIn('const filtering = view === "numberones";', javascript)
+        self.assertNotIn('view === "numberones" || view === "numberonesummary"', javascript)
+        self.assertIn("From date cannot be after To date.", javascript)
+        self.assertIn("To date cannot be before From date.", javascript)
+        self.assertIn("from > to", javascript)
+        self.assertIn('number-one-from-calendar").max', javascript)
+        self.assertIn('number-one-to-calendar").min', javascript)
 
     def test_methodology_explains_probability_only_layer_in_plain_english(self) -> None:
         javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
