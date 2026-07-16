@@ -87,6 +87,7 @@
       records: "All-time national-team rating peaks, greatest matchups and largest upsets.",
       predict: "Compare two national teams and calculate win, draw and loss probabilities.",
       methodology: "Detailed, reproducible methodology for the Network Football Elo model.",
+      faq: "Clear answers about Network Football Elo ratings, forecasts, data and methodology.",
       about: "Data sources, update schedule and limitations of Network Football Elo.",
       team: `${document.querySelector("h1")?.textContent || "National team"} ratings, results and historical record.`,
     };
@@ -866,6 +867,137 @@
     update();
   }
 
+
+const FAQ_ITEMS = [
+  {
+    question: "What is NFELO?",
+    answer: "NFELO is an independent rating system for men’s international football. It ranks national teams using their results, the strength of their opponents and the wider network of matches connecting teams across countries, regions and eras."
+  },
+  {
+    question: "How is NFELO different from the World Football Elo Ratings?",
+    answer: "Both systems belong to the Elo family, but NFELO does not update each team using only two fixed ratings and a traditional K-factor. It models uncertainty and the relationships created by shared opponents. Its displayed ratings and forecast probabilities are also separated: an additional scoring model can improve match forecasts without changing the rankings."
+  },
+  {
+    question: "What does a team’s rating mean?",
+    answer: "A rating represents the model’s estimate of that team’s current strength. The absolute number is mainly a convenient scale; differences between teams matter more. A higher rating normally means a greater expected chance of obtaining a positive result against a lower-rated opponent."
+  },
+  {
+    question: "How are the rankings calculated?",
+    answer: "After every match, the model compares the result with what it expected beforehand. Teams gain rating for performing better than expected and lose rating for performing worse. The size of the change also reflects the score margin, uncertainty around both teams and their connections to the broader opponent network."
+  },
+  {
+    question: "What is the network element?",
+    answer: "International teams do not all play one another, and some groups of countries historically played within relatively isolated networks. NFELO uses shared opponents—and shared opponents of opponents—to estimate how results in one part of international football relate to results elsewhere. This reduces distortions caused by repeatedly playing within a small, closed group."
+  },
+  {
+    question: "Does NFELO use different K-factors for friendlies, qualifiers and tournaments?",
+    answer: "Not in the traditional Elo sense. Historical testing found that assigning progressively larger rating updates to supposedly more important competitions did not improve out-of-sample forecasting. The released model therefore uses a common underlying information weight. However, friendlies and competitive matches use different forecast calibration because their results exhibit somewhat different predictive patterns."
+  },
+  {
+    question: "Does that mean a friendly is treated exactly like a World Cup match?",
+    answer: "No. They share the same underlying update structure, but individual rating changes are still affected by the result, opponent strength, score margin, uncertainty and network position. Competition type is also used when calibrating forecast probabilities. No K-factor hierarchy does not mean every match produces the same-sized update."
+  },
+  {
+    question: "How is home advantage handled?",
+    answer: "The model includes a home adjustment when one team is genuinely playing at home. Matches at neutral venues receive no home advantage. The adjustment was estimated from historical results rather than copied from the traditional 100-point Elo convention."
+  },
+  {
+    question: "How does goal margin affect ratings?",
+    answer: "Winning by more normally provides more information than winning by one goal, but the effect is not linear. Each additional goal contributes less information than the previous one, preventing unusually large victories from dominating a team’s rating. The margin treatment is also normalised across eras because scoring conditions have changed over football history."
+  },
+  {
+    question: "How are new teams given a starting rating?",
+    answer: "New teams are not assigned an arbitrary universal starting number. Their initial estimate is based on the established teams active around the time of their debut, adjusted for the size and strength distribution of the international pool. Their early rating also carries greater uncertainty and can therefore adapt more quickly as results accumulate."
+  },
+  {
+    question: "How are match probabilities calculated?",
+    answer: "The core rating model first estimates the relative strength of the teams, including home advantage and uncertainty. A hidden forecasting layer then uses team-specific attacking, defensive, scoring and draw tendencies to refine the win, draw and loss probabilities. This layer affects forecasts only. It does not change the displayed ratings, historical peaks or ranking order."
+  },
+  {
+    question: "Why keep the forecasting layer separate from the rankings?",
+    answer: "A single rating is useful because it produces a clear, understandable ranking. Attack-and-defence information can improve probabilities, but reducing all those characteristics to one number would lose some of their forecasting value. Keeping the extra detail behind the scenes preserves a simple ranking while allowing more accurate forecasts."
+  },
+  {
+    question: "Does the forecasting layer ever reverse the rating model’s favourite?",
+    answer: "No. It refines the probability assigned to each outcome while preserving the core network model’s most likely result. Its purpose is to improve probability calibration, not to replace the ranking system with a separate, contradictory model."
+  },
+  {
+    question: "What does a probability such as 45%–29%–26% mean?",
+    answer: "It means the model estimates a 45% chance that the first-listed team wins, a 29% chance of a draw and a 26% chance that the second-listed team wins. A 45% prediction is not a claim that the team should always win: it would still be expected not to win 55% of the time."
+  },
+  {
+    question: "How was the methodology selected?",
+    answer: "Competing approaches were tested on tens of thousands of historical matches using rolling out-of-sample evaluation. For each test period, parameters were fitted using only earlier results and then assessed on matches the fitted model had not seen. The primary measure was three-way logarithmic loss, supported by Brier score, ranked probability score, accuracy and calibration checks."
+  },
+  {
+    question: "Is NFELO always more likely to predict the correct result than other systems?",
+    answer: "No model wins every comparison. NFELO performed better overall than the tested World Football Elo baseline across the complete historical evaluation, but the difference in correctly selected win, draw or loss outcomes is relatively modest. Much of the improvement comes from assigning more realistic probabilities, including when both systems choose the same result."
+  },
+  {
+    question: "What does better log loss mean in practice?",
+    answer: "Log loss evaluates the full probability forecast, not just the most likely result. It rewards confident correct forecasts but heavily penalises excessive confidence in outcomes that do not happen. A lower log loss therefore indicates that the probabilities were more useful and better calibrated over many matches."
+  },
+  {
+    question: "How are extra time and penalty shootouts treated?",
+    answer: "A match level after the recorded playing period is treated as a draw for win, draw and loss forecasting and rating purposes. A penalty shootout determines which team advances or wins the trophy, but it does not turn the preceding draw into a normal match victory. Scores shown by the source data may include extra time but exclude shootout kicks."
+  },
+  {
+    question: "Can I view rankings from a previous date?",
+    answer: "Yes. The History page reconstructs the rankings as they stood after the latest completed matchday on or before the selected date. Historical country names, such as West Germany, the Soviet Union and Czechoslovakia, are shown where appropriate for that period."
+  },
+  {
+    question: "How often is the site updated?",
+    answer: "The site checks for new results and fixtures three times each day. When new completed matches are found, it validates the source data, replays the complete rating history and rebuilds the site. If an update fails its checks, the existing verified version remains online rather than publishing incomplete or inconsistent data."
+  }
+];
+
+function renderFAQ() {
+  setTitle("Frequently asked questions");
+  content.innerHTML = `
+    <article class="page page-narrow prose faq-page">
+      <p class="eyebrow">Understanding the site</p>
+      <h1>Frequently asked questions</h1>
+      <p class="lede">Straightforward answers about the ratings, forecasts, historical data and the methodology behind NFELO.</p>
+      <div class="faq-tools" role="search">
+        <div class="field field-grow">
+          <label for="faq-search">Search questions</label>
+          <input id="faq-search" type="search" placeholder="Ratings, friendlies, penalties…" autocomplete="off">
+        </div>
+        <div class="faq-actions" aria-label="Question controls">
+          <button class="button" type="button" id="faq-expand">Expand all</button>
+          <button class="button button-quiet" type="button" id="faq-collapse">Collapse all</button>
+        </div>
+      </div>
+      <p id="faq-count" class="muted small" aria-live="polite"></p>
+      <div id="faq-list" class="faq-list"></div>
+      <div class="callout faq-more"><b>Looking for the exact calculations?</b> The <a href="#/methodology">Methodology page</a> contains the full formulae, parameters and validation approach.</div>
+    </article>`;
+
+  const list = document.getElementById("faq-list");
+  const count = document.getElementById("faq-count");
+  const search = document.getElementById("faq-search");
+
+  const draw = () => {
+    const query = search.value.trim().toLocaleLowerCase();
+    const filtered = FAQ_ITEMS.filter((item) => `${item.question} ${item.answer}`.toLocaleLowerCase().includes(query));
+    list.innerHTML = filtered.length ? filtered.map((item, index) => `
+      <details class="faq-item"${!query && index === 0 ? " open" : ""}>
+        <summary>${escapeHTML(item.question)}</summary>
+        <div class="faq-answer"><p>${escapeHTML(item.answer)}</p></div>
+      </details>`).join("") : `<div class="empty-state"><h2>No matching questions</h2><p>Try a broader term or clear the search.</p></div>`;
+    count.textContent = query ? `${filtered.length} of ${FAQ_ITEMS.length} questions shown` : `${FAQ_ITEMS.length} questions`;
+  };
+
+  search.addEventListener("input", draw);
+  document.getElementById("faq-expand").addEventListener("click", () => {
+    list.querySelectorAll("details").forEach((item) => { item.open = true; });
+  });
+  document.getElementById("faq-collapse").addEventListener("click", () => {
+    list.querySelectorAll("details").forEach((item) => { item.open = false; });
+  });
+  draw();
+}
+
   function renderMethodology() {
     setTitle("Methodology");
     const p = summary.parameters;
@@ -991,6 +1123,7 @@
         case "predict": await renderPredict(); break;
         case "team": current.value ? await renderTeam(current.value, current.query) : renderNotFound(); break;
         case "methodology": renderMethodology(); break;
+        case "faq": renderFAQ(); break;
         case "about": renderAbout(); break;
         default: renderNotFound();
       }

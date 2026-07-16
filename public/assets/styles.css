@@ -282,6 +282,22 @@ td.numeric, th.numeric { text-align: right; font-variant-numeric: tabular-nums; 
 .formula { overflow-x: auto; margin: 20px 0; padding: 20px; color: #f8f6ef; background: var(--navy); border-radius: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; line-height: 1.8; white-space: nowrap; }
 .parameter-table { margin: 22px 0; }
 .callout { margin: 28px 0; padding: 20px; background: rgba(216,239,132,.28); border-left: 4px solid #88a82c; border-radius: 0 12px 12px 0; }
+
+.faq-tools { display: flex; align-items: end; gap: 12px; margin: 34px 0 10px; padding: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.faq-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.faq-list { display: grid; gap: 12px; margin-top: 20px; }
+.faq-item { overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 15px; box-shadow: 0 3px 14px rgba(11,31,38,.035); }
+.faq-item summary { position: relative; padding: 20px 56px 20px 22px; color: var(--ink); font-size: 18px; font-weight: 700; line-height: 1.35; cursor: pointer; list-style: none; }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { position: absolute; top: 50%; right: 22px; width: 26px; height: 26px; color: var(--navy); background: var(--lime); border-radius: 50%; font-size: 20px; font-weight: 500; line-height: 24px; text-align: center; content: "+"; transform: translateY(-50%); }
+.faq-item[open] summary { border-bottom: 1px solid var(--border); }
+.faq-item[open] summary::after { content: "−"; }
+.faq-item summary:hover { background: rgba(216,239,132,.16); }
+.faq-item summary:focus-visible { outline: 3px solid var(--gold); outline-offset: -3px; }
+.faq-answer { padding: 20px 22px 22px; }
+.faq-answer p { margin: 0; }
+.faq-more { margin-top: 30px; }
+
 .method-summary { margin: 30px 0; padding: 26px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .method-summary h2 { margin: 0 0 18px; font-size: 30px; }
 .method-summary ol { margin: 0; padding-left: 22px; }
@@ -385,6 +401,13 @@ td.numeric, th.numeric { text-align: right; font-variant-numeric: tabular-nums; 
   .match-history-table .probability { width: 100%; }
   .team-match-table td[data-label="Result"] { align-self: center; }
   .match-history-table td[data-label="Competition"], .match-history-table td[data-label="Team ratings"], .match-history-table td[data-label="Combined pre-match"], .team-match-table td[data-label="Competition"], .team-match-table td[data-label="Ratings"] { grid-column: 1 / -1; color: var(--ink-soft); font-size: 12px; }
+
+.faq-tools { display: grid; padding: 14px; }
+.faq-actions { display: grid; grid-template-columns: 1fr 1fr; }
+.faq-actions .button { min-width: 0; padding-inline: 10px; }
+.faq-item summary { padding: 17px 50px 17px 17px; font-size: 17px; }
+.faq-item summary::after { right: 16px; }
+.faq-answer { padding: 17px; }
   .formula::before { content: "Swipe to see the full formula →"; display: block; margin-bottom: 8px; color: var(--mint); font-family: Calibri, "Segoe UI", Roboto, Arial, sans-serif; font-size: 11px; font-weight: 700; }
 }
 

@@ -81,6 +81,7 @@ def write_route_entries(output: Path, summary: dict[str, Any]) -> None:
         "records": ("Records", "All-time national-team rating peaks, greatest matchups and largest upsets."),
         "predict": ("Predict a match", "Compare two national teams and calculate win, draw and loss probabilities."),
         "methodology": ("Methodology", "Detailed, reproducible methodology for the Network Football Elo model."),
+        "faq": ("Frequently asked questions", "Clear answers about Network Football Elo ratings, forecasts, data and methodology."),
         "about": ("About", "Data sources, update schedule and limitations of Network Football Elo."),
     }
     entries: list[tuple[str, str, str]] = [

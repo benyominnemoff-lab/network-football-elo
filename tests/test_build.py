@@ -179,6 +179,19 @@ class StaticBuildTests(unittest.TestCase):
         # the probability forecast and aggregate log loss are unchanged.
         self.assertLessEqual(abs(correct - 27_677), 1)
 
+    def test_faq_page_is_complete_and_discoverable(self) -> None:
+        javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
+        html = (ROOT / "public" / "index.html").read_text(encoding="utf-8")
+        sitemap = (ROOT / "public" / "sitemap.xml").read_text(encoding="utf-8")
+        self.assertIn('href="#/faq">FAQ</a>', html)
+        self.assertIn('case "faq": renderFAQ(); break;', javascript)
+        self.assertEqual(javascript.count('question: "'), 20)
+        self.assertIn("Search questions", javascript)
+        self.assertIn("Expand all", javascript)
+        self.assertIn("Collapse all", javascript)
+        self.assertIn("https://nfelo.github.io/faq/", sitemap)
+        self.assertTrue((ROOT / "public" / "faq" / "index.html").exists())
+
     def test_methodology_explains_probability_only_layer_in_plain_english(self) -> None:
         javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
         for phrase in (
