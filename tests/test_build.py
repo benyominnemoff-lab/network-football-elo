@@ -307,6 +307,16 @@ class StaticBuildTests(unittest.TestCase):
         self.assertEqual(latest["events"], sorted(latest["events"], key=lambda row: (row["date"], row["id"], row["code"])))
         self.assertTrue(all(row["matches"] >= 30 for row in latest["opening"] + latest["events"]))
 
+    def test_history_date_mask_and_world_cup_order(self) -> None:
+        javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("formatHistoryDateInput", javascript)
+        self.assertIn('maxlength="10"', javascript)
+        self.assertIn("Day must be between 01 and 31.", javascript)
+        self.assertIn("Month must be between 01 and 12.", javascript)
+        after = '`<option value="${cup.after}">After ${cup.year} World Cup</option>`'
+        before = '`<option value="${cup.before}">Before ${cup.year} World Cup</option>`'
+        self.assertLess(javascript.index(after), javascript.index(before))
+
     def test_public_metadata_and_discovery_files(self) -> None:
         public = ROOT / "public"
         html = (public / "index.html").read_text(encoding="utf-8")

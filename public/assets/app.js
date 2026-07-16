@@ -134,6 +134,24 @@
     const parsed = new Date(`${iso}T00:00:00Z`);
     return Number.isNaN(parsed.valueOf()) || parsed.toISOString().slice(0, 10) !== iso ? "" : iso;
   };
+  const formatHistoryDateInput = (value) => {
+    const digits = String(value).replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  };
+  const historyDateInputError = (value, firstDate, lastDate) => {
+    const digits = String(value).replace(/\D/g, "").slice(0, 8);
+    if (digits.length && Number(digits[0]) > 3) return "Day must be between 01 and 31.";
+    if (digits.length >= 2 && (Number(digits.slice(0, 2)) < 1 || Number(digits.slice(0, 2)) > 31)) return "Day must be between 01 and 31.";
+    if (digits.length >= 3 && Number(digits[2]) > 1) return "Month must be between 01 and 12.";
+    if (digits.length >= 4 && (Number(digits.slice(2, 4)) < 1 || Number(digits.slice(2, 4)) > 12)) return "Month must be between 01 and 12.";
+    if (digits.length < 8) return "";
+    const chosen = inputDate(formatHistoryDateInput(digits));
+    if (!chosen) return "Enter a real calendar date as DD/MM/YYYY.";
+    if (chosen < firstDate || chosen > lastDate) return `Choose a date from ${validDate(firstDate)} to ${validDate(lastDate)}.`;
+    return "";
+  };
   const venueHTML = (code) => {
     const labels = { H: "Home", A: "Away", N: "Neutral" };
     return `<span class="venue-code venue-${code}" title="${labels[code]}" aria-label="${labels[code]}">${code}</span>`;
@@ -350,9 +368,9 @@
     content.innerHTML = `<div class="page">
       <header class="page-heading"><div><p class="eyebrow">Rankings on any date</p><h1>Historical rankings</h1></div><p class="lede">Reconstructed with the current model after every match played on or before the selected date. These are present-day estimates of the past, not tables published at the time.</p></header>
       <div class="toolbar history-toolbar">
-        <div class="history-date-actions"><div class="field history-date-field"><label for="history-date">Ranking date</label><div class="date-combo"><input id="history-date" type="text" inputmode="numeric" autocomplete="off" placeholder="DD/MM/YYYY" value="${validDate(selected)}" aria-describedby="history-date-error"><button class="button" type="button" id="history-calendar-button" aria-label="Open calendar">Calendar</button><input id="history-calendar" class="native-date-proxy" type="date" min="${index.first}" max="${today}" value="${selected}" tabindex="-1" aria-hidden="true" aria-label="Ranking date calendar"></div><span id="history-date-error" class="field-error" role="alert"></span></div><button class="button button-dark" type="button" id="history-apply">Apply date</button></div>
+        <div class="history-date-actions"><div class="field history-date-field"><label for="history-date">Ranking date</label><div class="date-combo"><input id="history-date" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/YYYY" value="${validDate(selected)}" aria-describedby="history-date-error"><button class="button" type="button" id="history-calendar-button" aria-label="Open calendar">Calendar</button><input id="history-calendar" class="native-date-proxy" type="date" min="${index.first}" max="${today}" value="${selected}" tabindex="-1" aria-hidden="true" aria-label="Ranking date calendar"></div><span id="history-date-error" class="field-error" role="alert"></span></div><button class="button button-dark" type="button" id="history-apply">Apply date</button></div>
         <div class="history-nav-actions"><button class="button" type="button" id="history-prev">← Previous matchday</button><button class="button" type="button" id="history-next">Next matchday →</button><button class="button" type="button" id="history-year-start">Start of year</button></div>
-        <div class="field field-grow"><label for="history-world-cup">World Cup moments</label><select id="history-world-cup"><option value="">Choose a tournament…</option>${index.world_cups.flatMap((cup) => [`<option value="${cup.before}">Before ${cup.year} World Cup</option>`, `<option value="${cup.after}">After ${cup.year} World Cup</option>`]).join("")}</select></div>
+        <div class="field field-grow"><label for="history-world-cup">World Cup moments</label><select id="history-world-cup"><option value="">Choose a tournament…</option>${index.world_cups.flatMap((cup) => [`<option value="${cup.after}">After ${cup.year} World Cup</option>`, `<option value="${cup.before}">Before ${cup.year} World Cup</option>`]).join("")}</select></div>
       </div>
       <div class="record-note"><strong id="history-count">—</strong><div><b id="history-label">Eligible teams</b><br>At least 30 matches and an appearance in the selected year or preceding four calendar years.</div></div>
       <div class="toolbar compact-toolbar"><div class="field field-grow"><label for="history-search">Find a team</label><input id="history-search" type="search" placeholder="Brazil, Hungary, Morocco…" value="${escapeHTML(route.query.get("q") || "")}"></div><div class="field"><label for="history-sort">Sort</label><select id="history-sort"><option value="rating">Rating</option><option value="mean">Model strength</option><option value="matches">Matches played</option><option value="name">Name</option></select></div></div>
@@ -383,6 +401,7 @@
       dateInput.value = validDate(chosen);
       calendarInput.value = chosen;
       document.getElementById("history-date-error").textContent = "";
+      dateInput.removeAttribute("aria-invalid");
       document.getElementById("history-prev").disabled = chosen <= index.first;
       document.getElementById("history-next").disabled = chosen >= index.last;
       saveHistoryRoute();
@@ -414,14 +433,33 @@
     };
     const applyTypedDate = () => {
       const chosen = inputDate(dateInput.value);
-      if (!chosen) {
-        document.getElementById("history-date-error").textContent = "Enter a valid date as DD/MM/YYYY.";
+      const error = historyDateInputError(dateInput.value, index.first, today);
+      if (!chosen || error) {
+        document.getElementById("history-date-error").textContent = error || "Enter a complete date as DD/MM/YYYY.";
+        dateInput.setAttribute("aria-invalid", "true");
         return;
       }
       loadDate(chosen);
     };
+    const syncTypedDate = () => {
+      dateInput.value = formatHistoryDateInput(dateInput.value);
+      const error = historyDateInputError(dateInput.value, index.first, today);
+      document.getElementById("history-date-error").textContent = error;
+      if (error) dateInput.setAttribute("aria-invalid", "true");
+      else dateInput.removeAttribute("aria-invalid");
+    };
     document.getElementById("history-apply").addEventListener("click", applyTypedDate);
-    dateInput.addEventListener("keydown", (event) => { if (event.key === "Enter") applyTypedDate(); });
+    dateInput.addEventListener("input", syncTypedDate);
+    dateInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") applyTypedDate();
+      if (event.key === "Backspace" && dateInput.selectionStart === dateInput.selectionEnd && [3, 6].includes(dateInput.selectionStart)) {
+        event.preventDefault();
+        const position = dateInput.selectionStart;
+        dateInput.value = `${dateInput.value.slice(0, position - 2)}${dateInput.value.slice(position)}`;
+        syncTypedDate();
+        dateInput.setSelectionRange(position - 2, position - 2);
+      }
+    });
     document.getElementById("history-calendar-button").addEventListener("click", () => {
       if (typeof calendarInput.showPicker === "function") calendarInput.showPicker();
       else calendarInput.click();
