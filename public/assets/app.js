@@ -603,6 +603,12 @@
     </tr>`).join("")}</tbody></table></div>`;
   }
 
+  function numberOneTable(spells) {
+    return `<div class="table-hint" aria-hidden="true">Swipe to see more →</div><div class="table-shell"><table><thead><tr><th>Nation</th><th>From</th><th>Until</th><th class="numeric">Days</th><th class="numeric">Entry rating</th><th class="hide-mobile">Displaced</th></tr></thead><tbody>${spells.map((spell) => `<tr>
+      <td>${teamLink(spell.code, spell.nation, spell.from)}</td><td>${validDate(spell.from)}</td><td>${spell.to ? validDate(spell.to) : "<b>Current</b>"}</td><td class="numeric">${number(spell.days)}</td><td class="numeric"><span class="rating-main">${rating(spell.rating)}</span></td><td class="hide-mobile">${spell.displaced ? teamLink(spell.displaced_code, spell.displaced, spell.from) : "—"}</td>
+    </tr>`).join("")}</tbody></table></div>`;
+  }
+
   function matchRecordTable(matches) {
     return `<div class="table-hint" aria-hidden="true">Swipe to see more →</div><div class="table-shell"><table><thead><tr><th class="numeric">Rank</th><th>Date</th><th>Match</th><th class="numeric">Score</th><th class="numeric">Combined rating</th><th class="hide-mobile">Competition</th></tr></thead><tbody>${matches.map((match, index) => `<tr>
       <td class="rank-cell numeric">${index + 1}</td><td>${validDate(match.date)}</td><td>${teamLink(match.code1, match.team1)} <span class="muted">v</span> ${teamLink(match.code2, match.team2)}</td><td class="numeric"><span class="score">${escapeHTML(match.score).replace("-", "–")}</span></td><td class="numeric"><span class="rating-main">${rating(match.combined)}</span><span class="rating-sub">combined strength ${rating(match.combined_mean)} · uncertainty ${rating(match.combined_se)}</span></td><td class="hide-mobile">${escapeHTML(match.tournament)}</td>
@@ -620,12 +626,12 @@
     content.innerHTML = `
       <div class="page">
         <header class="page-heading"><div><p class="eyebrow">Historical rating records</p><h1>Records</h1></div><p class="lede">Nation peaks show each country's highest rating. Top matches rank individual fixtures by the combined pre-match rating of both teams. Limited or narrowly connected schedules receive an uncertainty adjustment.</p></header>
-        <div class="record-tabs"><button class="button button-dark" data-record="peaks" aria-pressed="true">Nation peaks</button><button class="button" data-record="matches" aria-pressed="false">Top matches</button><button class="button" data-record="upsets" aria-pressed="false">Largest upsets</button></div>
+        <div class="record-tabs"><button class="button button-dark" data-record="peaks" aria-pressed="true">Nation peaks</button><button class="button" data-record="numberones" aria-pressed="false">World number ones</button><button class="button" data-record="matches" aria-pressed="false">Top matches</button><button class="button" data-record="upsets" aria-pressed="false">Largest upsets</button></div>
         <div id="record-note" class="record-note"></div>
         <div id="record-table"></div>
         <div class="pagination"><span id="record-count" class="muted small" aria-live="polite"></span><div class="pagination-actions"><button id="record-more" class="button">Show more</button><button id="record-all" class="button button-quiet">Show all</button></div></div>
       </div>`;
-    let view = ["peaks", "matches", "upsets"].includes(route.query.get("view")) ? route.query.get("view") : "peaks";
+    let view = ["peaks", "numberones", "matches", "upsets"].includes(route.query.get("view")) ? route.query.get("view") : "peaks";
     let shown = Math.max(25, Number(route.query.get("shown") || 25)) || 25;
     document.querySelectorAll("[data-record]").forEach((button) => {
       const active = button.dataset.record === view;
@@ -633,14 +639,28 @@
       button.classList.toggle("button-dark", active);
     });
     const update = () => {
-      const source = view === "peaks" ? summary.peaks : view === "matches" ? summary.top_matches : summary.upsets;
+      const sources = {
+        peaks: summary.peaks,
+        numberones: summary.number_ones || [],
+        matches: summary.top_matches,
+        upsets: summary.upsets,
+      };
+      const source = sources[view];
       const visible = source.slice(0, shown);
       document.getElementById("record-note").innerHTML = view === "peaks"
         ? `<strong>1×</strong><div><b>One maximum per canonical nation.</b> Successor histories are joined; a strict improvement is required to replace the earlier peak.</div>`
-        : view === "matches"
-          ? `<strong>Q</strong><div><b>Every eligible match instance is ranked.</b> Q is the two breadth-adjusted means minus 1.645 times their joint standard error; repeat pairings are not deduplicated.</div>`
-          : `<strong>±</strong><div><b>Decisive results ranked by rating movement.</b> Upset points are the average of the winner's rating gain and the loser's rating loss. The two values can differ because this network-adjusted model is not strictly zero-sum.</div>`;
-      document.getElementById("record-table").innerHTML = view === "peaks" ? peakTable(visible) : view === "matches" ? matchRecordTable(visible) : upsetTable(visible);
+        : view === "numberones"
+          ? `<strong>1</strong><div><b>Every spell as NFELO world number one.</b> Leadership is determined after all matches on each date. A spell changes only when another eligible nation finishes a matchday with the highest rating; historical names are retained.</div>`
+          : view === "matches"
+            ? `<strong>Q</strong><div><b>Every eligible match instance is ranked.</b> Q is the two breadth-adjusted means minus 1.645 times their joint standard error; repeat pairings are not deduplicated.</div>`
+            : `<strong>±</strong><div><b>Decisive results ranked by rating movement.</b> Upset points are the average of the winner's rating gain and the loser's rating loss. The two values can differ because this network-adjusted model is not strictly zero-sum.</div>`;
+      document.getElementById("record-table").innerHTML = view === "peaks"
+        ? peakTable(visible)
+        : view === "numberones"
+          ? numberOneTable(visible)
+          : view === "matches"
+            ? matchRecordTable(visible)
+            : upsetTable(visible);
       document.getElementById("record-count").textContent = `Showing ${number(visible.length)} of ${number(source.length)}`;
       document.getElementById("record-more").hidden = shown >= source.length;
       document.getElementById("record-all").hidden = shown >= source.length;
@@ -658,7 +678,7 @@
     }));
     document.getElementById("record-more").addEventListener("click", () => { shown += 25; update(); });
     document.getElementById("record-all").addEventListener("click", () => {
-      shown = (view === "peaks" ? summary.peaks : view === "matches" ? summary.top_matches : summary.upsets).length;
+      shown = ({ peaks: summary.peaks, numberones: summary.number_ones || [], matches: summary.top_matches, upsets: summary.upsets })[view].length;
       update();
     });
     update();

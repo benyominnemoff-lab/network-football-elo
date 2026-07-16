@@ -206,6 +206,23 @@ class StaticBuildTests(unittest.TestCase):
         teams = {team["code"]: team["nation"] for team in self.summary["teams"]}
         self.assertEqual(teams["AS"], "American Samoa")
 
+    def test_world_number_one_spells_are_complete_and_visible(self) -> None:
+        spells = self.summary["number_ones"]
+        self.assertGreater(len(spells), 20)
+        self.assertEqual(spells, sorted(spells, key=lambda row: row["from"], reverse=True))
+        self.assertIsNone(spells[0]["to"])
+        self.assertTrue(all(spell["days"] > 0 for spell in spells))
+        self.assertTrue(all(spell["matches"] if "matches" in spell else True for spell in spells))
+        for older, newer in zip(reversed(spells), list(reversed(spells))[1:]):
+            self.assertLessEqual(older["from"], newer["from"])
+            self.assertTrue(
+                older["code"] != newer["code"] or older["nation"] != newer["nation"]
+            )
+        javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
+        self.assertIn('data-record="numberones"', javascript)
+        self.assertIn("function numberOneTable", javascript)
+        self.assertIn("Leadership is determined after all matches on each date", javascript)
+
     def test_methodology_explains_probability_only_layer_in_plain_english(self) -> None:
         javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
         for phrase in (

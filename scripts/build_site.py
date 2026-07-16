@@ -214,6 +214,7 @@ def build_historical_rankings(data: Path, output: Any) -> None:
 
     first_date, last_date = output.matches[0]["date"], output.matches[-1]["date"]
     opening: dict[str, dict[str, Any]] = {}
+    number_ones: list[dict[str, Any]] = []
     years = []
     for year in range(int(first_date[:4]), int(last_date[:4]) + 1):
         rows = sorted(events_by_year.get(year, []), key=lambda row: (row["date"], row["id"], row["code"]))
@@ -223,8 +224,42 @@ def build_historical_rankings(data: Path, output: Any) -> None:
             "matchdays": sorted(matchdays_by_year.get(year, set())),
         })
         years.append({"year": year, "file": filename, "events": len(rows)})
+        daily_rows: dict[str, list[dict[str, Any]]] = {}
         for row in rows:
-            opening[row["code"]] = {key: value for key, value in row.items() if key != "id"}
+            daily_rows.setdefault(row["date"], []).append(row)
+        for day, day_rows in daily_rows.items():
+            for row in day_rows:
+                opening[row["code"]] = {
+                    key: value for key, value in row.items() if key != "id"
+                }
+            eligible = [row for row in opening.values() if row["matches"] >= 30]
+            if not eligible:
+                continue
+            leader = max(eligible, key=lambda row: (row["rating"], row["code"]))
+            previous = number_ones[-1] if number_ones else None
+            changed_team = previous is None or previous["code"] != leader["code"]
+            changed_name = previous is not None and previous["nation"] != leader["nation"]
+            if changed_team or changed_name:
+                if previous is not None:
+                    previous["to"] = (
+                        date.fromisoformat(day) - timedelta(days=1)
+                    ).isoformat()
+                number_ones.append({
+                    "code": leader["code"],
+                    "nation": leader["nation"],
+                    "from": day,
+                    "to": None,
+                    "rating": leader["rating"],
+                    "displaced_code": previous["code"] if changed_team and previous else None,
+                    "displaced": previous["nation"] if changed_team and previous else None,
+                })
+
+    for spell in number_ones:
+        effective_end = spell["to"] or last_date
+        spell["days"] = (
+            date.fromisoformat(effective_end) - date.fromisoformat(spell["from"])
+        ).days + 1
+    output.summary["number_ones"] = list(reversed(number_ones))
 
     world_cups = []
     for year, days in sorted(world_cup_days.items(), reverse=True):
@@ -257,6 +292,7 @@ def main() -> None:
     output.summary["meta"]["generated_at"] = generated_at
     output.summary["meta"]["source_update"] = status
 
+    build_historical_rankings(data, output)
     write_json(data / "summary.json", output.summary)
     write_json(data / "state.json", output.state)
     write_json(data / "fixtures.json", build_fixtures(args.source, output))
@@ -294,8 +330,6 @@ def main() -> None:
 
     for code, page in output.team_pages.items():
         write_json(data / "teams" / f"{code}.json", page)
-
-    build_historical_rankings(data, output)
 
     tournament_counts = Counter(match["tc"] for match in output.matches)
     write_json(
