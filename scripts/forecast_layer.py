@@ -367,6 +367,44 @@ class ForecastLayer:
         self.last_day = day
         return final
 
+    def historical_context(self) -> dict[str, Any]:
+        """Compact causal score context for a completed historical matchday."""
+        context: dict[str, Any] = {
+            "year": self.current_year,
+            "release": None,
+            "base_goal": self._base_goal(int(self.current_year)),
+            "as_of_day": self.last_day,
+            "parameters": None,
+            "calibration": None,
+        }
+        if self.current_release is None or self.current_calibration is None:
+            return context
+        calibration = self.current_calibration
+        context["release"] = self.current_release.name
+        context["parameters"] = {
+            "gap_scale": self.current_release.gap_scale,
+            "annual_decay": self.current_release.annual_decay,
+        }
+        context["calibration"] = {
+            "draw_log_tilt": calibration.draw_log_tilt,
+            "friendly_temperature": calibration.friendly_temperature,
+            "competitive_temperature": calibration.competitive_temperature,
+            "nfelo_weight": calibration.nfelo_weight,
+            "score_weight": 1.0 - calibration.nfelo_weight,
+        }
+        return context
+
+    def historical_team_state(self, team: int) -> dict[str, Any] | None:
+        if self.current_release is None or self.current_calibration is None:
+            return None
+        state = self.states[self.current_release.name]
+        return {
+            "release": self.current_release.name,
+            "attack": float(state.attack[team]),
+            "defence": float(state.defence[team]),
+            "last_day": int(state.last_day[team]),
+        }
+
     def export(self) -> dict[str, Any]:
         if self.current_release is None or self.current_calibration is None:
             raise RuntimeError("Forecast layer has no current calibrated release")

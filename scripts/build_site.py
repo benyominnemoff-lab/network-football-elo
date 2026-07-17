@@ -258,6 +258,9 @@ def build_historical_rankings(data: Path, output: Any) -> None:
                     ),
                     "rating": point["rating"],
                     "mean": point["mean"], "se": point["se"],
+                    "latent": point["latent"],
+                    "reliability": point["reliability"],
+                    "score_state": point["score_state"],
                     "matches": point["matches"], "form": point["form"],
                 }
             )
@@ -276,16 +279,25 @@ def build_historical_rankings(data: Path, output: Any) -> None:
         matches_by_day_team.setdefault((match["date"], match["b"]), []).append(match)
 
     first_date, last_date = output.matches[0]["date"], output.matches[-1]["date"]
+    contexts_by_year: dict[int, list[dict[str, Any]]] = {}
+    for item in output.prediction_contexts:
+        contexts_by_year.setdefault(int(item["date"][:4]), []).append(item)
+    opening_context: dict[str, Any] | None = None
     opening: dict[str, dict[str, Any]] = {}
     number_ones: list[dict[str, Any]] = []
     years = []
     for year in range(int(first_date[:4]), int(last_date[:4]) + 1):
         rows = sorted(events_by_year.get(year, []), key=lambda row: (row["date"], row["id"], row["code"]))
         filename = f"{year}.json"
+        year_contexts = contexts_by_year.get(year, [])
         write_json(data / "rankings-history" / filename, {
             "year": year, "opening": list(opening.values()), "events": rows,
             "matchdays": sorted(matchdays_by_year.get(year, set())),
+            "opening_prediction_context": opening_context,
+            "prediction_contexts": year_contexts,
         })
+        if year_contexts:
+            opening_context = year_contexts[-1]
         years.append({"year": year, "file": filename, "events": len(rows)})
         daily_rows: dict[str, list[dict[str, Any]]] = {}
         for row in rows:

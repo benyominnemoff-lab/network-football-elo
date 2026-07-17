@@ -283,6 +283,34 @@ class StaticBuildTests(unittest.TestCase):
         self.assertIn('number-one-from-calendar").max', javascript)
         self.assertIn('number-one-to-calendar").min', javascript)
 
+    def test_historical_predictor_score_grid_and_rating_effects(self) -> None:
+        javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
+        stylesheet = (ROOT / "public" / "assets" / "styles.css").read_text(encoding="utf-8")
+        for phrase in (
+            'id="predict-date" type="text"',
+            'id="predict-calendar"',
+            "opening_prediction_context",
+            "prediction_contexts",
+            "Exact-score grid",
+            "Effect of each winning margin",
+            "for (let margin = -5; margin <= 5; margin += 1)",
+            "poissonMasses(lambdaA, 5)",
+            "teams[0].code",
+            "teams.find((team) => team.code !== codeA).code",
+        ):
+            self.assertIn(phrase, javascript)
+        self.assertIn(".score-grid table", stylesheet)
+        self.assertIn(".margin-grid table", stylesheet)
+        latest_history = json.loads(
+            (self.data / "rankings-history" / f'{self.summary["meta"]["results_through"][:4]}.json').read_text(encoding="utf-8")
+        )
+        self.assertIn("opening_prediction_context", latest_history)
+        self.assertIn("prediction_contexts", latest_history)
+        self.assertTrue(latest_history["prediction_contexts"])
+        self.assertTrue(all("context" in item and "margin_environment" in item for item in latest_history["prediction_contexts"]))
+        rows = latest_history["opening"] + latest_history["events"]
+        self.assertTrue(any("latent" in row and "reliability" in row and "score_state" in row for row in rows))
+
     def test_methodology_explains_probability_only_layer_in_plain_english(self) -> None:
         javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
         for phrase in (

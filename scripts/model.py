@@ -181,6 +181,7 @@ class ReplayOutput:
     state: dict[str, Any]
     matches: list[dict[str, Any]]
     team_pages: dict[str, dict[str, Any]]
+    prediction_contexts: list[dict[str, Any]]
 
 
 class NetworkEloReplay:
@@ -237,6 +238,7 @@ class NetworkEloReplay:
         self.peaks: dict[str, dict[str, Any]] = {}
         self.high_matches: list[dict[str, Any]] = []
         self.match_rows: list[dict[str, Any]] = []
+        self.prediction_contexts: list[dict[str, Any]] = []
         self.margin_window: deque[tuple[int, float]] = deque()
         self.margin_excess_sum = 0.0
 
@@ -553,6 +555,8 @@ class NetworkEloReplay:
                         "mean": post["mean"],
                         "se": post["se"],
                         "latent": post["latent"],
+                        "reliability": post["reliability"],
+                        "score_state": self.forecast_layer.historical_team_state(index),
                         "matches": int(self.games[index]),
                         "form": list(self.stats[index]["last5"]),
                         "opponent": self.name(self.teams[opponent]),
@@ -578,6 +582,16 @@ class NetworkEloReplay:
                             "tournament": self.tournament_name(match.tournament),
                             "matches_played": int(self.games[index]),
                         }
+
+            if (
+                match_id == len(self.matches) - 1
+                or self.matches[match_id + 1].date_text != match.date_text
+            ):
+                self.prediction_contexts.append({
+                    "date": match.date_text,
+                    "context": self.forecast_layer.historical_context(),
+                    "margin_environment": margin_environment,
+                })
 
         self.covariance[:] = 0.5 * (self.covariance + self.covariance.T)
         return self.finish()
@@ -762,7 +776,9 @@ class NetworkEloReplay:
             raise RuntimeError("Non-finite posterior means")
         if float(np.min(np.diag(self.covariance))) < -1e-6:
             raise RuntimeError("Negative posterior variance")
-        return ReplayOutput(summary, state, self.match_rows, team_pages)
+        return ReplayOutput(
+            summary, state, self.match_rows, team_pages, self.prediction_contexts
+        )
 
 
 def run_replay(source: Path, config: Path) -> ReplayOutput:

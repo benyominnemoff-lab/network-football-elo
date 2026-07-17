@@ -369,7 +369,23 @@ td.numeric, th.numeric { text-align: right; font-variant-numeric: tabular-nums; 
 .comparison-line-b { stroke: var(--navy); }
 .comparison-meetings table { min-width: 680px; }
 
+
+.predict-date-toolbar { margin-bottom: 22px; }
+.score-grid table { min-width: 650px; table-layout: fixed; }
+.score-grid th:first-child { min-width: 180px; }
+.score-grid td { font-variant-numeric: tabular-nums; }
+.score-win { background: rgba(167,216,189,.22); }
+.score-draw { background: rgba(238,196,92,.18); }
+.score-loss { background: rgba(239,114,95,.12); }
+.margin-grid table { min-width: 720px; }
+.positive { color: #24764c; font-weight: 750; }
+.negative { color: #b3473b; font-weight: 750; }
 @media (max-width: 720px) {
+  .predict-date-toolbar .history-date-actions { display: grid; grid-template-columns: 1fr; width: 100%; }
+  .predict-date-toolbar #predict-apply { width: 100%; }
+  .predict-options { display: grid; grid-template-columns: 1fr 1fr; }
+  .score-grid { margin-left: -12px; margin-right: -12px; border-radius: 0; }
+  .margin-grid { margin-left: -12px; margin-right: -12px; border-radius: 0; }
   .comparison-picker { grid-template-columns: 1fr; }
   .comparison-swap { width: 100%; margin: 0; }
   .comparison-cards { grid-template-columns: 1fr; gap: 12px; }

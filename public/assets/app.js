@@ -86,7 +86,7 @@
       fixtures: "Upcoming senior internationals with current ratings and match probabilities.",
       records: "All-time national-team rating peaks, greatest matchups and largest upsets.",
       compare: "Compare two national teams' ratings, movement, histories and head-to-head results.",
-      predict: "Compare two national teams and calculate win, draw and loss probabilities.",
+      predict: "Predict historical or current matchups with W/D/L, exact-score and rating-impact tables.",
       methodology: "Detailed, reproducible methodology for the Network Football Elo model.",
       faq: "Clear answers about Network Football Elo ratings, forecasts, data and methodology.",
       about: "Data sources, update schedule and limitations of Network Football Elo.",
@@ -245,7 +245,7 @@
           <div class="hero-actions">
             <a class="button button-primary" href="#/rankings">See the rankings</a>
             <a class="button" href="#/fixtures">Upcoming matches</a>
-            <a class="button" href="#/predict">Try a matchup</a>
+            <a class="button" href="#/predict">Predict any historical or current matchup</a>
           </div>
           </div>
           <dl class="home-facts">
@@ -889,8 +889,8 @@
     setTitle("Compare teams");
     const teams = summary.current;
     const validCodes = new Set(teams.map((team) => team.code));
-    let codeA = validCodes.has(route.query.get("a")) ? route.query.get("a") : (validCodes.has("ES") ? "ES" : teams[0].code);
-    let codeB = validCodes.has(route.query.get("b")) ? route.query.get("b") : (validCodes.has("AR") ? "AR" : teams[1].code);
+    let codeA = validCodes.has(route.query.get("a")) ? route.query.get("a") : teams[0].code;
+    let codeB = validCodes.has(route.query.get("b")) && route.query.get("b") !== codeA ? route.query.get("b") : teams.find((team) => team.code !== codeA).code;
     if (codeA === codeB) codeB = teams.find((team) => team.code !== codeA).code;
     const options = (selected) => teams.map((team) => `<option value="${escapeHTML(team.code)}" ${team.code === selected ? "selected" : ""}>${escapeHTML(team.nation)} · ${rating(team.rating)}</option>`).join("");
     content.innerHTML = `
@@ -930,7 +930,7 @@
         <section class="comparison-cards">
           ${[a, b].map((team) => `<article><p class="eyebrow">${teamLink(team.code, team.nation)}</p><strong>${rating(team.rating)}</strong><dl><div><dt>World rank</dt><dd>${team.rank ? `No. ${number(team.rank)}` : "—"}</dd></div><div><dt>12-month movement</dt><dd>${movementHTML(team)}</dd></div><div><dt>All-time peak</dt><dd>${team.peak ? `${rating(team.peak.rating)} · ${validDate(team.peak.date)}` : "—"}</dd></div><div><dt>Overall record</dt><dd>${number(team.wins)}–${number(team.draws)}–${number(team.losses)}</dd></div></dl></article>`).join("")}
         </section>
-        <div class="comparison-actions"><a class="button button-dark" href="#/predict?a=${encodeURIComponent(codeA)}&b=${encodeURIComponent(codeB)}">Forecast this matchup →</a></div>
+        <div class="comparison-actions"><a class="button button-dark" href="#/predict?a=${encodeURIComponent(codeA)}&b=${encodeURIComponent(codeB)}">Open probabilities, score grid and rating effects →</a></div>
         <section class="section"><div class="section-heading"><div><p class="eyebrow">After every eligible match</p><h2>Rating histories</h2></div></div>${comparisonChart(first, second)}</section>
         <section class="section"><div class="section-heading"><div><p class="eyebrow">${number(meetings.length)} recorded meetings</p><h2>Head to head</h2></div><strong>${escapeHTML(a.nation)}: ${head.W} wins · ${head.D} draws · ${head.L} losses · goals ${head.gf}–${head.ga}</strong></div>
           ${meetings.length ? `<div class="table-hint" aria-hidden="true">Swipe to see every column →</div><div class="table-shell comparison-meetings"><table><thead><tr><th>Date</th><th>Match</th><th>H/A/N</th><th>Result</th><th>Competition</th></tr></thead><tbody>${meetings.map((match) => `<tr><td>${validDate(match.date)}</td><td>${escapeHTML(match.team_name)} <span class="score">${match.gf}–${match.ga}</span> ${teamLink(match.opponent_code, match.opponent, match.date)}</td><td>${venueHTML(match.site)}</td><td>${formHTML([match.result])}</td><td>${escapeHTML(match.tournament)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">No recorded meetings.</div>`}
@@ -947,87 +947,261 @@
     await draw();
   }
 
+  const modelValueForYear = (year, values) => {
+    const knots = summary.parameters.knot_years;
+    if (year <= knots[0]) return Number(values[0]);
+    if (year >= knots[knots.length - 1]) return Number(values[values.length - 1]);
+    const right = knots.findIndex((knot) => year <= knot);
+    const fraction = (year - knots[right - 1]) / (knots[right] - knots[right - 1]);
+    return Number(values[right - 1]) + fraction * (Number(values[right]) - Number(values[right - 1]));
+  };
+  const historicalScale = (year) => Math.exp(modelValueForYear(year, summary.parameters.calibration_scale.map(Math.log)));
+  const historicalHome = (year) => modelValueForYear(year, summary.parameters.home_advantage);
+  const historicalDraw = (year) => {
+    const transformed = summary.parameters.draw_probability.map((value) => {
+      const unit = (value - 0.05) / 0.40;
+      return Math.log(unit / (1 - unit));
+    });
+    const logit = modelValueForYear(year, transformed);
+    return 0.05 + 0.40 / (1 + Math.exp(-logit));
+  };
+  const poissonMasses = (lambda, maximum = 40) => {
+    const values = [Math.exp(-lambda)];
+    for (let goals = 1; goals <= maximum; goals += 1) values.push(values[goals - 1] * lambda / goals);
+    return values;
+  };
+  const marginWeight = (margin, environment) => {
+    const parameters = summary.parameters.goal_margin;
+    if (margin === 0) return parameters.draw;
+    const raw = Math.min(Math.abs(margin), 7);
+    let effective = 1 + (raw - 1) * Math.pow(1.10 / Math.max(0.10, environment), parameters.environment_power);
+    effective = Math.min(7, effective);
+    if (effective <= 1) return 1;
+    if (effective <= 2) return 1 + (effective - 1) * (parameters.two - 1);
+    if (effective <= 3) return parameters.two + (effective - 2) * (parameters.three - parameters.two);
+    return parameters.three + parameters.tail * (effective - 3);
+  };
+
   async function renderPredict(route = { query: new URLSearchParams() }) {
     setTitle("Predict a match");
-    loading("Loading the current ratings…");
-    const state = await getJSON("data/state.json");
-    const teams = summary.current;
-    const requestedA = route.query.get("a");
-    const requestedB = route.query.get("b");
-    const defaultA = teams.find((team) => team.code === requestedA) || teams.find((team) => team.code === "ES") || teams[0];
-    const defaultB = teams.find((team) => team.code === requestedB && team.code !== defaultA.code) || teams.find((team) => team.code === "AR" && team.code !== defaultA.code) || teams.find((team) => team.code !== defaultA.code);
-    const options = (selected) => teams.map((team) => `<option value="${escapeHTML(team.code)}" ${team.code === selected ? "selected" : ""}>${escapeHTML(team.nation)} · ${rating(team.rating)}</option>`).join("");
+    loading("Loading prediction history…");
+    const [historyIndex, currentState] = await Promise.all([
+      getJSON("data/rankings-history/index.json"),
+      getJSON("data/state.json"),
+    ]);
+    const today = todayISO();
+    const requested = isoDate(route.query.get("date")) || today;
+    let selectedDate = requested < historyIndex.first ? historyIndex.first : requested > today ? today : requested;
     content.innerHTML = `
-      <div class="page">
-        <header class="page-heading"><div><p class="eyebrow">Match probability calculator</p><h1>Predict a match</h1></div><p class="lede">Choose two teams, the venue and whether the match is friendly or competitive. The forecast combines current network strength and uncertainty with each team's recent scoring pattern.</p></header>
-        <div class="predictor">
-          <div class="team-picker"><p class="eyebrow">Team one</p><select id="predict-a" aria-label="Team one">${options(defaultA.code)}</select></div>
-          <div class="versus" aria-hidden="true">v</div>
-          <div class="team-picker"><p class="eyebrow">Team two</p><select id="predict-b" aria-label="Team two">${options(defaultB.code)}</select></div>
+      <div class="page predict-page">
+        <header class="page-heading"><div><p class="eyebrow">Historical and current match calculator</p><h1>Predict a match</h1></div><p class="lede">Choose any date and two teams ranked on that date. The calculator shows W/D/L probabilities, a 6×6 exact-score grid and projected rating effects for margins from five goals either way.</p></header>
+        <div class="toolbar history-toolbar predict-date-toolbar">
+          <div class="history-date-actions"><div class="field history-date-field"><label for="predict-date">Prediction date</label><div class="date-combo"><input id="predict-date" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/YYYY" value="${validDate(selectedDate)}" aria-describedby="predict-date-error"><button class="button" type="button" id="predict-calendar-button" aria-label="Open prediction-date calendar">Calendar</button><input id="predict-calendar" class="native-date-proxy" type="date" min="${historyIndex.first}" max="${today}" value="${selectedDate}" tabindex="-1" aria-hidden="true"></div><span id="predict-date-error" class="field-error" role="alert"></span></div><button class="button button-dark" type="button" id="predict-apply">Apply date</button></div>
         </div>
-        <div class="toolbar section">
+        <div id="predict-body"></div>
+      </div>`;
+    const body = document.getElementById("predict-body");
+    const dateInput = document.getElementById("predict-date");
+    const calendarInput = document.getElementById("predict-calendar");
+    let initialA = route.query.get("a");
+    let initialB = route.query.get("b");
+
+    const historicalPayload = async (dateValue) => {
+      const year = Math.min(Number(dateValue.slice(0, 4)), Number(historyIndex.last.slice(0, 4)));
+      const payload = await getJSON(`data/rankings-history/${year}.json`);
+      const teams = new Map(payload.opening.map((team) => [team.code, team]));
+      payload.events.forEach((event) => { if (event.date <= dateValue) teams.set(event.code, event); });
+      const active = [...teams.values()].filter((team) => year - Number(team.date.slice(0, 4)) <= 4);
+      active.sort((a, b) => b.rating - a.rating || a.nation.localeCompare(b.nation));
+      active.forEach((team, index) => { team.rank = index + 1; });
+      let context = payload.opening_prediction_context;
+      (payload.prediction_contexts || []).forEach((item) => { if (item.date <= dateValue) context = item; });
+      return { teams: active, context };
+    };
+
+    const loadDate = async (dateValue, preserveRequestedTeams = false) => {
+      selectedDate = dateValue;
+      dateInput.value = validDate(dateValue);
+      calendarInput.value = dateValue;
+      document.getElementById("predict-date-error").textContent = "";
+      dateInput.removeAttribute("aria-invalid");
+      history.replaceState(null, "", cleanRouteURL("predict", "", new URLSearchParams({ date: dateValue })));
+      body.innerHTML = `<div class="loading-shell" role="status"><span class="spinner"></span><p>Loading ratings for ${escapeHTML(validDate(dateValue))}…</p></div>`;
+      const useCurrent = dateValue >= summary.meta.results_through;
+      const historical = useCurrent ? null : await historicalPayload(dateValue);
+      const teams = useCurrent ? summary.current : historical.teams;
+      if (teams.length < 2) {
+        body.innerHTML = `<div class="empty"><h2>Not enough eligible teams</h2><p>Two teams must have reached 30 matches by this date.</p></div>`;
+        return;
+      }
+      const codes = new Set(teams.map((team) => team.code));
+      const codeA = preserveRequestedTeams && codes.has(initialA) ? initialA : teams[0].code;
+      const codeB = preserveRequestedTeams && codes.has(initialB) && initialB !== codeA ? initialB : teams.find((team) => team.code !== codeA).code;
+      initialA = null;
+      initialB = null;
+      const options = (selected) => teams.map((team) => `<option value="${escapeHTML(team.code)}" ${team.code === selected ? "selected" : ""}>No. ${team.rank} · ${escapeHTML(team.nation)} · ${rating(team.rating)}</option>`).join("");
+      body.innerHTML = `
+        <div class="predictor">
+          <div class="team-picker"><p class="eyebrow">Team one</p><select id="predict-a" aria-label="Team one">${options(codeA)}</select></div>
+          <div class="versus" aria-hidden="true">v</div>
+          <div class="team-picker"><p class="eyebrow">Team two</p><select id="predict-b" aria-label="Team two">${options(codeB)}</select></div>
+        </div>
+        <div class="toolbar section predict-options">
           <div class="field"><label for="predict-venue">Venue</label><select id="predict-venue"><option value="0">Neutral</option><option value="1">Team one at home</option><option value="-1">Team two at home</option></select></div>
           <div class="field"><label for="predict-class">Match class</label><select id="predict-class"><option value="competitive">Competitive</option><option value="friendly">Friendly</option></select></div>
         </div>
         <div id="forecast"></div>
-      </div>`;
-    const byCode = new Map(summary.teams.map((team) => [team.code, team]));
-    const stateIndex = new Map(state.codes.map((code, index) => [code, index]));
-    const covariance = state.covariance;
-    const n = state.codes.length;
-    const cov = (i, j) => covariance[i * n + j];
-    const logistic = (value) => 1 / (1 + Math.pow(10, -value / 400));
-    const update = () => {
-      const codeA = document.getElementById("predict-a").value;
-      const codeB = document.getElementById("predict-b").value;
-      const target = document.getElementById("forecast");
-      if (codeA === codeB) {
-        target.innerHTML = `<div class="error-panel"><h2>Choose two different teams</h2><p>A team cannot play itself.</p></div>`;
+        <section class="section"><div class="section-heading"><div><p class="eyebrow">Independent Poisson score probabilities</p><h2>Exact-score grid</h2></div></div><div id="score-grid"></div></section>
+        <section class="section"><div class="section-heading"><div><p class="eyebrow">Projected post-match ratings</p><h2>Effect of each winning margin</h2></div></div><div class="record-note"><strong>±</strong><div>Historical projections use the model state stored at the selected matchday. Because the static history does not retain every pairwise covariance and opponent-breadth counterfactual, historical rating changes are close projections rather than exact replayed updates.</div></div><div id="margin-grid"></div></section>`;
+
+      const byCode = new Map(teams.map((team) => [team.code, team]));
+      const currentIndex = new Map(currentState.codes.map((code, index) => [code, index]));
+      const n = currentState.codes.length;
+      const cov = (i, j) => currentState.covariance[i * n + j];
+      const logistic = (value) => 1 / (1 + Math.pow(10, -value / 400));
+      const dayNumber = (() => { const [y, m, d] = dateValue.split("-").map(Number); return y * 400 + m * 32 + d; })();
+
+      const update = () => {
+        const first = byCode.get(document.getElementById("predict-a").value);
+        const second = byCode.get(document.getElementById("predict-b").value);
+        if (first.code === second.code) {
+          document.getElementById("forecast").innerHTML = `<div class="error-panel"><h2>Choose two different teams</h2></div>`;
+          document.getElementById("score-grid").innerHTML = "";
+          document.getElementById("margin-grid").innerHTML = "";
+          return;
+        }
+        const home = Number(document.getElementById("predict-venue").value);
+        const friendly = document.getElementById("predict-class").value === "friendly";
+        const year = Number(dateValue.slice(0, 4));
+        const scale = useCurrent ? currentState.scale : historicalScale(year);
+        const homePoints = useCurrent ? currentState.home : historicalHome(year);
+        const drawBase = useCurrent ? currentState.draw : historicalDraw(year);
+        let variance;
+        let cross = 0;
+        if (useCurrent) {
+          const i = currentIndex.get(first.code);
+          const j = currentIndex.get(second.code);
+          cross = cov(i, j);
+          variance = Math.max(0, cov(i, i) + cov(j, j) - 2 * cross);
+        } else {
+          variance = Math.max(0, first.se * first.se + second.se * second.se);
+        }
+        const difference = scale * (first.latent - second.latent) + homePoints * home;
+        const expected = logistic(difference);
+        const network = [0, 0, 0];
+        currentState.nodes.forEach((node, index) => {
+          const sampled = difference + Math.sqrt(2 * variance) * scale * node;
+          const expectation = logistic(sampled);
+          const draw = drawBase * 4 * expectation * (1 - expectation);
+          [expectation - draw / 2, draw, 1 - expectation - draw / 2].forEach((value, outcome) => {
+            network[outcome] += currentState.weights[index] * value;
+          });
+        });
+        const baseTemperature = friendly ? currentState.friendly_temperature : currentState.competitive_temperature;
+        let powered = network.map((value) => Math.pow(Math.max(1e-15, value), baseTemperature));
+        let total = powered.reduce((sum, value) => sum + value, 0);
+        const base = powered.map((value) => value / total);
+
+        let layer = useCurrent ? currentState.forecast_layer : historical.context?.context;
+        let firstScore;
+        let secondScore;
+        if (useCurrent) {
+          const i = currentIndex.get(first.code);
+          const j = currentIndex.get(second.code);
+          firstScore = { release: layer.release, attack: layer.attack[i], defence: layer.defence[i], last_day: layer.last_day[i] };
+          secondScore = { release: layer.release, attack: layer.attack[j], defence: layer.defence[j], last_day: layer.last_day[j] };
+        } else {
+          firstScore = first.score_state;
+          secondScore = second.score_state;
+        }
+        const activeScore = layer?.release && layer.parameters && layer.calibration
+          && firstScore?.release === layer.release && secondScore?.release === layer.release;
+        const clipped = Math.min(1 - 1e-8, Math.max(1e-8, expected));
+        const gapScale = layer?.parameters?.gap_scale ?? 1;
+        const decay = layer?.parameters?.annual_decay ?? 0;
+        const decayed = (state, field) => {
+          if (!state) return 0;
+          const elapsed = state.last_day < 0 ? 0 : Math.max(0, (dayNumber - state.last_day) / 400);
+          return state[field] * Math.exp(-decay * elapsed);
+        };
+        const gap = 0.5 * gapScale * Math.log(clipped / (1 - clipped));
+        const baseGoal = layer?.base_goal ?? 1.1;
+        const lambdaA = Math.min(8, Math.max(0.05, Math.exp(Math.log(baseGoal) + gap + (activeScore ? decayed(firstScore, "attack") - decayed(secondScore, "defence") : 0))));
+        const lambdaB = Math.min(8, Math.max(0.05, Math.exp(Math.log(baseGoal) - gap + (activeScore ? decayed(secondScore, "attack") - decayed(firstScore, "defence") : 0))));
+        let probabilities = base;
+        if (activeScore) {
+          const score = poissonWDL(lambdaA, lambdaB);
+          score[1] *= Math.exp(layer.calibration.draw_log_tilt);
+          total = score.reduce((sum, value) => sum + value, 0);
+          const temperature = friendly ? layer.calibration.friendly_temperature : layer.calibration.competitive_temperature;
+          powered = score.map((value) => Math.pow(Math.max(1e-15, value / total), temperature));
+          total = powered.reduce((sum, value) => sum + value, 0);
+          const calibrated = powered.map((value) => value / total);
+          const pooled = base.map((value, index) => layer.calibration.nfelo_weight * value + layer.calibration.score_weight * calibrated[index]);
+          const top = (values) => values.indexOf(Math.max(...values));
+          if (top(pooled) === top(base)) probabilities = pooled;
+        }
+        const labels = [`${first.nation} win`, "Draw", `${second.nation} win`];
+        const maximum = Math.max(...probabilities);
+        document.getElementById("forecast").innerHTML = `<section class="forecast" aria-live="polite"><div class="forecast-title"><div><p class="eyebrow">Match forecast · ${validDate(dateValue)}</p><h2>${escapeHTML(first.nation)} v ${escapeHTML(second.nation)}</h2></div><span>${friendly ? "friendly" : "competitive"} · ${home === 0 ? "neutral" : home === 1 ? `${escapeHTML(first.nation)} home` : `${escapeHTML(second.nation)} home`}</span></div><div class="forecast-bars">${probabilities.map((value, index) => `<div class="forecast-outcome ${value === maximum ? "is-top" : ""}"><span>${escapeHTML(labels[index])}</span><strong>${percent(value)}</strong></div>`).join("")}</div><div class="forecast-meta"><span>${escapeHTML(first.nation)} <b>No. ${first.rank} · ${rating(first.rating)}</b></span><span>${escapeHTML(second.nation)} <b>No. ${second.rank} · ${rating(second.rating)}</b></span><span>Expected goals <b>${number(lambdaA, 2)}–${number(lambdaB, 2)}</b></span></div></section>`;
+
+        const massesA = poissonMasses(lambdaA, 5);
+        const massesB = poissonMasses(lambdaB, 5);
+        document.getElementById("score-grid").innerHTML = `<div class="table-hint" aria-hidden="true">Swipe to see every scoreline →</div><div class="table-shell score-grid"><table><thead><tr><th>${escapeHTML(first.nation)} ↓ · ${escapeHTML(second.nation)} →</th>${[0,1,2,3,4,5].map((goal) => `<th class="numeric">${goal}</th>`).join("")}</tr></thead><tbody>${[0,1,2,3,4,5].map((goalsA) => `<tr><th class="numeric">${goalsA}</th>${[0,1,2,3,4,5].map((goalsB) => `<td class="numeric ${goalsA > goalsB ? "score-win" : goalsA < goalsB ? "score-loss" : "score-draw"}">${percent(massesA[goalsA] * massesB[goalsB])}</td>`).join("")}</tr>`).join("")}</tbody></table></div><p class="muted small">The 36 cells show exact scores from 0–0 to 5–5; outcomes involving six or more goals are outside the grid.</p>`;
+
+        const vi = first.se * first.se;
+        const vj = second.se * second.se;
+        const environment = useCurrent ? 1.1 : historical.context?.margin_environment ?? 1.1;
+        const beta = Math.log(10) * scale / 400;
+        const quality = summary.parameters.network.quality_scale;
+        const rows = [];
+        for (let margin = -5; margin <= 5; margin += 1) {
+          const result = margin > 0 ? 1 : margin < 0 ? 0 : 0.5;
+          const weight = quality * marginWeight(margin, environment);
+          const information = Math.max(1e-8, expected * (1 - expected));
+          const curvature = weight * beta * beta * information;
+          const denominator = 1 + curvature * variance;
+          const directionA = vi - cross;
+          const directionB = cross - vj;
+          const scalar = weight * beta * (result - expected) / denominator;
+          const deltaA = directionA * scalar;
+          const deltaB = directionB * scalar;
+          const postVarA = Math.max(0, vi - directionA * directionA * curvature / denominator);
+          const postVarB = Math.max(0, vj - directionB * directionB * curvature / denominator);
+          const postA = first.mean + first.reliability * deltaA - confidenceZ * Math.sqrt(postVarA);
+          const postB = second.mean + second.reliability * deltaB - confidenceZ * Math.sqrt(postVarB);
+          rows.push({ margin, postA, postB, changeA: postA - first.rating, changeB: postB - second.rating });
+        }
+        document.getElementById("margin-grid").innerHTML = `<div class="table-hint" aria-hidden="true">Swipe to see both teams →</div><div class="table-shell margin-grid"><table><thead><tr><th>Result</th><th class="numeric">${escapeHTML(first.nation)} rating</th><th class="numeric">Change</th><th class="numeric">${escapeHTML(second.nation)} rating</th><th class="numeric">Change</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.margin > 0 ? `${escapeHTML(first.nation)} by ${row.margin}` : row.margin < 0 ? `${escapeHTML(second.nation)} by ${Math.abs(row.margin)}` : "Draw"}</td><td class="numeric"><b>${rating(row.postA)}</b></td><td class="numeric ${row.changeA >= 0 ? "positive" : "negative"}">${row.changeA >= 0 ? "+" : ""}${rating(row.changeA)}</td><td class="numeric"><b>${rating(row.postB)}</b></td><td class="numeric ${row.changeB >= 0 ? "positive" : "negative"}">${row.changeB >= 0 ? "+" : ""}${rating(row.changeB)}</td></tr>`).join("")}</tbody></table></div>`;
+        history.replaceState(null, "", cleanRouteURL("predict", "", new URLSearchParams({ date: dateValue, a: first.code, b: second.code })));
+      };
+      ["predict-a", "predict-b", "predict-venue", "predict-class"].forEach((id) => document.getElementById(id).addEventListener("change", update));
+      update();
+    };
+
+    const applyDate = () => {
+      const chosen = inputDate(dateInput.value);
+      const error = historyDateInputError(dateInput.value, historyIndex.first, today);
+      if (!chosen || error) {
+        document.getElementById("predict-date-error").textContent = error || "Enter a complete date as DD/MM/YYYY.";
+        dateInput.setAttribute("aria-invalid", "true");
         return;
       }
-      const i = stateIndex.get(codeA);
-      const j = stateIndex.get(codeB);
-      const teamA = byCode.get(codeA);
-      const teamB = byCode.get(codeB);
-      const home = Number(document.getElementById("predict-venue").value);
-      const matchClass = document.getElementById("predict-class").value;
-      const variance = Math.max(0, cov(i, i) + cov(j, j) - 2 * cov(i, j));
-      const difference = state.scale * (state.means[i] - state.means[j]) + state.home * home;
-      const base = [0, 0, 0];
-      state.nodes.forEach((node, index) => {
-        const sampled = difference + Math.sqrt(2 * variance) * state.scale * node;
-        const expected = logistic(sampled);
-        const draw = state.draw * 4 * expected * (1 - expected);
-        const values = [expected - draw / 2, draw, 1 - expected - draw / 2];
-        values.forEach((value, outcome) => { base[outcome] += state.weights[index] * value; });
-      });
-      const temperature = matchClass === "friendly" ? state.friendly_temperature : state.competitive_temperature;
-      const powered = base.map((value) => Math.pow(Math.max(1e-15, value), temperature));
-      const total = powered.reduce((sum, value) => sum + value, 0);
-      const networkProbabilities = powered.map((value) => value / total);
-      const [todayYear, todayMonth, todayDay] = todayISO().split("-").map(Number);
-      const forecastDay = todayYear * 400 + todayMonth * 32 + todayDay;
-      const probabilities = applyForecastLayer(
-        networkProbabilities,
-        logistic(difference),
-        i,
-        j,
-        matchClass === "friendly",
-        Math.max(forecastDay, state.forecast_layer?.as_of_day || forecastDay),
-        state.forecast_layer,
-      );
-      const max = Math.max(...probabilities);
-      const jointSE = Math.sqrt(Math.max(0, cov(i, i) + cov(j, j) + 2 * cov(i, j)));
-      const combined = teamA.mean + teamB.mean - confidenceZ * jointSE;
-      const labels = [`${teamA.nation} win`, "Draw", `${teamB.nation} win`];
-      target.innerHTML = `<section class="forecast" aria-live="polite">
-        <div class="forecast-title"><div><p class="eyebrow">Match forecast</p><h2>${escapeHTML(teamA.nation)} v ${escapeHTML(teamB.nation)}</h2></div><span>${escapeHTML(matchClass)} · ${home === 0 ? "neutral" : home === 1 ? `${escapeHTML(teamA.nation)} home` : `${escapeHTML(teamB.nation)} home`}</span></div>
-        <div class="forecast-bars">${probabilities.map((value, index) => `<div class="forecast-outcome ${value === max ? "is-top" : ""}"><span>${escapeHTML(labels[index])}</span><strong>${percent(value)}</strong></div>`).join("")}</div>
-        <div class="forecast-meta"><span>${escapeHTML(teamA.nation)} rating <b>${rating(teamA.rating)}</b></span><span>${escapeHTML(teamB.nation)} rating <b>${rating(teamB.rating)}</b></span><span>Combined rating <b>${rating(combined)}</b></span><span>Rating-gap uncertainty <b>${rating(Math.sqrt(variance))}</b></span></div>
-      </section>`;
+      loadDate(chosen, false);
     };
-    ["predict-a", "predict-b", "predict-venue", "predict-class"].forEach((id) => document.getElementById(id).addEventListener("change", update));
-    update();
+    dateInput.addEventListener("input", () => {
+      dateInput.value = formatHistoryDateInput(dateInput.value);
+      const error = historyDateInputError(dateInput.value, historyIndex.first, today);
+      document.getElementById("predict-date-error").textContent = error;
+      if (error) dateInput.setAttribute("aria-invalid", "true"); else dateInput.removeAttribute("aria-invalid");
+    });
+    dateInput.addEventListener("keydown", (event) => { if (event.key === "Enter") applyDate(); });
+    document.getElementById("predict-apply").addEventListener("click", applyDate);
+    document.getElementById("predict-calendar-button").addEventListener("click", () => {
+      if (typeof calendarInput.showPicker === "function") calendarInput.showPicker(); else calendarInput.click();
+    });
+    calendarInput.addEventListener("change", () => { if (calendarInput.value) loadDate(calendarInput.value, false); });
+    await loadDate(selectedDate, true);
   }
 
   function ratingChart(history, nation) {
