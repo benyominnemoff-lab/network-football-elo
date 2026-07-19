@@ -816,11 +816,17 @@
     const payload = await getJSON("data/fixtures.json");
     const fixtures = payload.fixtures || [];
     const competitions = [...new Set(fixtures.map((fixture) => fixture.tournament_name))].sort((a, b) => a.localeCompare(b));
+    const exampleFixture = fixtures.length
+      ? fixtures[Math.floor(Math.random() * fixtures.length)]
+      : null;
+    const fixtureSearchPlaceholder = exampleFixture
+      ? `${exampleFixture.team1_name}, ${exampleFixture.team2_name}, ${exampleFixture.tournament_name}…`
+      : "Team or competition…";
     content.innerHTML = `
       <div class="page">
         <header class="page-heading"><div><p class="eyebrow">Scheduled senior internationals</p><h1>Upcoming matches</h1></div><p class="lede">Validated fixtures from multiple public schedules, paired with probabilities from the current ratings. W and L are from the perspective of the first-listed team.</p></header>
         <div class="record-note"><strong>${number(fixtures.length)}</strong><div><b>Known future pairings.</b> Placeholder knockout matches remain hidden until both teams are identified. Feed checked ${validTimestamp(payload.checked_at)}.</div></div>
-        <div class="toolbar"><div class="field field-grow"><label for="fixture-search">Team or competition</label><input id="fixture-search" type="search" placeholder="Vietnam, friendly, AFCON…" value="${escapeHTML(route.query.get("q") || "")}"></div><div class="field"><label for="fixture-competition">Competition</label><select id="fixture-competition"><option value="">All competitions</option>${competitions.map((name) => `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join("")}</select></div></div>
+        <div class="toolbar"><div class="field field-grow"><label for="fixture-search">Team or competition</label><input id="fixture-search" type="search" placeholder="${escapeHTML(fixtureSearchPlaceholder)}" value="${escapeHTML(route.query.get("q") || "")}"></div><div class="field"><label for="fixture-competition">Competition</label><select id="fixture-competition"><option value="">All competitions</option>${competitions.map((name) => `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join("")}</select></div></div>
         <p id="fixture-count" class="muted small"></p>
         <div id="fixture-table"></div>
         <div class="pagination"><span id="fixture-page" class="muted small" aria-live="polite"></span><div class="pagination-actions"><button id="fixture-more" class="button">Show more</button><button id="fixture-all" class="button button-quiet">Show all</button></div></div>
@@ -1620,3 +1626,4 @@ function renderFAQ() {
   window.addEventListener("hashchange", route);
   route();
 })();
+

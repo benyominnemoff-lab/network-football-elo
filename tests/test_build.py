@@ -329,6 +329,18 @@ class StaticBuildTests(unittest.TestCase):
         rows = latest_history["opening"] + latest_history["events"]
         self.assertTrue(any("latent" in row and "reliability" in row and "score_state" in row for row in rows))
 
+    def test_fixture_search_placeholder_uses_a_listed_match(self) -> None:
+        javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("const exampleFixture = fixtures.length", javascript)
+        self.assertIn("Math.floor(Math.random() * fixtures.length)", javascript)
+        self.assertIn("exampleFixture.team1_name", javascript)
+        self.assertIn("exampleFixture.team2_name", javascript)
+        self.assertIn("exampleFixture.tournament_name", javascript)
+        self.assertIn('placeholder="${escapeHTML(fixtureSearchPlaceholder)}"', javascript)
+        self.assertIn('fixtureSearchPlaceholder = exampleFixture', javascript)
+        self.assertIn(': "Team or competition…";', javascript)
+        self.assertNotIn('placeholder="Vietnam, friendly, AFCON…"', javascript)
+
     def test_methodology_explains_probability_only_layer_in_plain_english(self) -> None:
         javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
         for phrase in (
@@ -483,3 +495,4 @@ class StaticBuildTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
