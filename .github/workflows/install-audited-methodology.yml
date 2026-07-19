@@ -1390,7 +1390,7 @@ jobs:
               "public/assets/app.js",
               "public/assets/styles.css",
               "tests/test_build.py",
-              "research/methodology-audit-2026-07-19/",
+              "research/methodology-audit-2026-07-19",
               "research/methodology-audit-2026-07-19/KEY_RESULTS.json",
               "research/methodology-audit-2026-07-19/README.md",
               "research/methodology-audit-2026-07-19/capture_batch_score.py",
