@@ -1,0 +1,157 @@
+name: Install GoatCounter analytics
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/install-goatcounter.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: install-goatcounter
+  cancel-in-progress: false
+
+jobs:
+  install:
+    name: Patch site files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Add GoatCounter tracking
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import re
+
+          html_path = Path("public/index.html")
+          javascript_path = Path("public/assets/app.js")
+
+          endpoint = "https://nfelo.goatcounter.com/count"
+
+          # Add the GoatCounter loader before the site's application script.
+          html = html_path.read_text(encoding="utf-8")
+
+          if endpoint not in html:
+              app_script_pattern = re.compile(
+                  r'(?P<indent>[ \t]*)'
+                  r'(?P<script><script src="assets/app\.js(?:\?v=[^"]*)?" defer></script>)'
+              )
+
+              match = app_script_pattern.search(html)
+              if not match:
+                  raise RuntimeError(
+                      "Could not find the assets/app.js script in public/index.html"
+                  )
+
+              indent = match.group("indent")
+              goatcounter_html = (
+                  f'{indent}<script>\n'
+                  f'{indent}  window.goatcounter = {{ no_onload: true }};\n'
+                  f'{indent}</script>\n'
+                  f'{indent}<script\n'
+                  f'{indent}  data-goatcounter="{endpoint}"\n'
+                  f'{indent}  async\n'
+                  f'{indent}  src="https://gc.zgo.at/count.js">\n'
+                  f'{indent}</script>\n'
+                  f'{indent}{match.group("script")}'
+              )
+
+              html = (
+                  html[:match.start()]
+                  + goatcounter_html
+                  + html[match.end():]
+              )
+
+              html_path.write_text(html, encoding="utf-8")
+
+          # Add manual page-view tracking for the single-page application's
+          # client-side routes. no_onload above prevents duplicate initial views.
+          javascript = javascript_path.read_text(encoding="utf-8")
+
+          tracking_marker = "window.goatcounter?.count({"
+
+          if tracking_marker not in javascript:
+              route_normalization_pattern = re.compile(
+                  r'(?P<indent>[ \t]*)'
+                  r'if \(location\.hash\.startsWith\("#/"\)\) '
+                  r'history\.replaceState\('
+                  r'null, "", '
+                  r'cleanRouteURL\(current\.section, current\.value, current\.query\)'
+                  r'\);'
+              )
+
+              match = route_normalization_pattern.search(javascript)
+              if not match:
+                  raise RuntimeError(
+                      "Could not find route URL normalization in "
+                      "public/assets/app.js"
+                  )
+
+              indent = match.group("indent")
+              replacement = (
+                  match.group(0)
+                  + "\n"
+                  + f"{indent}window.goatcounter?.count({{\n"
+                  + f"{indent}  path: `${{location.pathname}}${{location.search}}`,\n"
+                  + f"{indent}  title: document.title,\n"
+                  + f"{indent}}});"
+              )
+
+              javascript = (
+                  javascript[:match.start()]
+                  + replacement
+                  + javascript[match.end():]
+              )
+
+              javascript_path.write_text(javascript, encoding="utf-8")
+
+          # Fail rather than silently committing a partial installation.
+          final_html = html_path.read_text(encoding="utf-8")
+          final_javascript = javascript_path.read_text(encoding="utf-8")
+
+          if final_html.count(endpoint) != 1:
+              raise RuntimeError(
+                  "Expected exactly one GoatCounter endpoint in public/index.html"
+              )
+
+          if final_javascript.count(tracking_marker) != 1:
+              raise RuntimeError(
+                  "Expected exactly one GoatCounter tracking call in app.js"
+              )
+
+          print("GoatCounter analytics are installed.")
+          PY
+
+      - name: Validate browser JavaScript
+        run: node --check public/assets/app.js
+
+      - name: Show changes
+        run: git diff --check && git diff
+
+      - name: Commit installation
+        shell: bash
+        run: |
+          if git diff --quiet -- public/index.html public/assets/app.js; then
+            echo "GoatCounter is already installed; no commit is needed."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add public/index.html public/assets/app.js
+          git commit -m "Add GoatCounter analytics"
+          git push origin HEAD:main
