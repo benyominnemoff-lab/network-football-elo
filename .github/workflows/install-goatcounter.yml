@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - .github/workflows/install-goatcounter.yml
+      - ".github/workflows/install-goatcounter.yml"
 
 permissions:
   contents: write
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   install:
-    name: Patch site files
+    name: Add GoatCounter to site
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -28,123 +28,185 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Add GoatCounter tracking
+      - name: Install GoatCounter tracking
         shell: bash
         run: |
+          set -euo pipefail
+
           python <<'PY'
           from pathlib import Path
           import re
 
-          html_path = Path("public/index.html")
-          javascript_path = Path("public/assets/app.js")
 
-          endpoint = "https://nfelo.goatcounter.com/count"
+          HTML_PATH = Path("public/index.html")
+          JAVASCRIPT_PATH = Path("public/assets/app.js")
+          GOATCOUNTER_ENDPOINT = "https://nfelo.goatcounter.com/count"
 
-          # Add the GoatCounter loader before the site's application script.
-          html = html_path.read_text(encoding="utf-8")
+          if not HTML_PATH.exists():
+              raise FileNotFoundError(f"Missing {HTML_PATH}")
 
-          if endpoint not in html:
+          if not JAVASCRIPT_PATH.exists():
+              raise FileNotFoundError(f"Missing {JAVASCRIPT_PATH}")
+
+
+          def install_loader() -> None:
+              html = HTML_PATH.read_text(encoding="utf-8")
+
+              if GOATCOUNTER_ENDPOINT in html:
+                  print("GoatCounter loader is already installed.")
+                  return
+
               app_script_pattern = re.compile(
-                  r'(?P<indent>[ \t]*)'
-                  r'(?P<script><script src="assets/app\.js(?:\?v=[^"]*)?" defer></script>)'
+                  r'(?P<indent>^[ \t]*)'
+                  r'(?P<script>'
+                  r'<script src="assets/app\.js(?:\?v=[^"]*)?" defer></script>'
+                  r')',
+                  re.MULTILINE,
               )
 
               match = app_script_pattern.search(html)
-              if not match:
+
+              if match is None:
                   raise RuntimeError(
-                      "Could not find the assets/app.js script in public/index.html"
+                      "Could not find the deferred assets/app.js script "
+                      "in public/index.html"
                   )
 
               indent = match.group("indent")
+
               goatcounter_html = (
-                  f'{indent}<script>\n'
-                  f'{indent}  window.goatcounter = {{ no_onload: true }};\n'
-                  f'{indent}</script>\n'
-                  f'{indent}<script\n'
-                  f'{indent}  data-goatcounter="{endpoint}"\n'
-                  f'{indent}  async\n'
+                  f"{indent}<script>\n"
+                  f"{indent}  window.goatcounter = {{ no_onload: true }};\n"
+                  f"{indent}</script>\n"
+                  f"{indent}<script\n"
+                  f'{indent}  data-goatcounter="{GOATCOUNTER_ENDPOINT}"\n'
+                  f"{indent}  defer\n"
                   f'{indent}  src="https://gc.zgo.at/count.js">\n'
-                  f'{indent}</script>\n'
-                  f'{indent}{match.group("script")}'
+                  f"{indent}</script>\n"
+                  f"{indent}{match.group('script')}"
               )
 
-              html = (
-                  html[:match.start()]
+              updated_html = (
+                  html[: match.start()]
                   + goatcounter_html
-                  + html[match.end():]
+                  + html[match.end() :]
               )
 
-              html_path.write_text(html, encoding="utf-8")
+              HTML_PATH.write_text(updated_html, encoding="utf-8")
+              print("Installed the GoatCounter loader.")
 
-          # Add manual page-view tracking for the single-page application's
-          # client-side routes. no_onload above prevents duplicate initial views.
-          javascript = javascript_path.read_text(encoding="utf-8")
 
-          tracking_marker = "window.goatcounter?.count({"
+          def install_route_tracking() -> None:
+              javascript = JAVASCRIPT_PATH.read_text(encoding="utf-8")
+              tracking_marker = "window.goatcounter?.count?.({"
 
-          if tracking_marker not in javascript:
+              if tracking_marker in javascript:
+                  print("GoatCounter route tracking is already installed.")
+                  return
+
               route_normalization_pattern = re.compile(
-                  r'(?P<indent>[ \t]*)'
+                  r'(?P<indent>^[ \t]*)'
                   r'if \(location\.hash\.startsWith\("#/"\)\) '
                   r'history\.replaceState\('
                   r'null, "", '
-                  r'cleanRouteURL\(current\.section, current\.value, current\.query\)'
-                  r'\);'
+                  r'cleanRouteURL\('
+                  r'current\.section, current\.value, current\.query'
+                  r'\)'
+                  r'\);',
+                  re.MULTILINE,
               )
 
               match = route_normalization_pattern.search(javascript)
-              if not match:
+
+              if match is None:
                   raise RuntimeError(
-                      "Could not find route URL normalization in "
-                      "public/assets/app.js"
+                      "Could not find the route URL normalization statement "
+                      "in public/assets/app.js"
                   )
 
               indent = match.group("indent")
-              replacement = (
+
+              route_tracking = (
                   match.group(0)
                   + "\n"
-                  + f"{indent}window.goatcounter?.count({{\n"
-                  + f"{indent}  path: `${{location.pathname}}${{location.search}}`,\n"
+                  + f"{indent}window.goatcounter?.count?.({{\n"
+                  + f"{indent}  path: location.pathname + location.search,\n"
                   + f"{indent}  title: document.title,\n"
                   + f"{indent}}});"
               )
 
-              javascript = (
-                  javascript[:match.start()]
-                  + replacement
-                  + javascript[match.end():]
+              updated_javascript = (
+                  javascript[: match.start()]
+                  + route_tracking
+                  + javascript[match.end() :]
               )
 
-              javascript_path.write_text(javascript, encoding="utf-8")
-
-          # Fail rather than silently committing a partial installation.
-          final_html = html_path.read_text(encoding="utf-8")
-          final_javascript = javascript_path.read_text(encoding="utf-8")
-
-          if final_html.count(endpoint) != 1:
-              raise RuntimeError(
-                  "Expected exactly one GoatCounter endpoint in public/index.html"
+              JAVASCRIPT_PATH.write_text(
+                  updated_javascript,
+                  encoding="utf-8",
               )
 
-          if final_javascript.count(tracking_marker) != 1:
-              raise RuntimeError(
-                  "Expected exactly one GoatCounter tracking call in app.js"
+              print("Installed single-page application route tracking.")
+
+
+          def validate_installation() -> None:
+              html = HTML_PATH.read_text(encoding="utf-8")
+              javascript = JAVASCRIPT_PATH.read_text(encoding="utf-8")
+
+              endpoint_count = html.count(GOATCOUNTER_ENDPOINT)
+              tracking_count = javascript.count(
+                  "window.goatcounter?.count?.({"
               )
 
-          print("GoatCounter analytics are installed.")
+              if endpoint_count != 1:
+                  raise RuntimeError(
+                      "Expected exactly one GoatCounter endpoint in "
+                      f"{HTML_PATH}, found {endpoint_count}"
+                  )
+
+              if html.count("window.goatcounter = { no_onload: true };") != 1:
+                  raise RuntimeError(
+                      "Expected exactly one GoatCounter no_onload setting"
+                  )
+
+              if html.count("https://gc.zgo.at/count.js") != 1:
+                  raise RuntimeError(
+                      "Expected exactly one GoatCounter script loader"
+                  )
+
+              if tracking_count != 1:
+                  raise RuntimeError(
+                      "Expected exactly one GoatCounter route-tracking call "
+                      f"in {JAVASCRIPT_PATH}, found {tracking_count}"
+                  )
+
+              print("GoatCounter installation validated successfully.")
+
+
+          install_loader()
+          install_route_tracking()
+          validate_installation()
           PY
 
-      - name: Validate browser JavaScript
+      - name: Validate JavaScript syntax
         run: node --check public/assets/app.js
 
-      - name: Show changes
-        run: git diff --check && git diff
+      - name: Check generated changes
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff -- public/index.html public/assets/app.js
 
-      - name: Commit installation
+      - name: Commit and push changes
         shell: bash
         run: |
-          if git diff --quiet -- public/index.html public/assets/app.js; then
-            echo "GoatCounter is already installed; no commit is needed."
+          set -euo pipefail
+
+          if git diff --quiet -- \
+            public/index.html \
+            public/assets/app.js
+          then
+            echo "GoatCounter is already installed. Nothing to commit."
             exit 0
           fi
 
@@ -152,6 +214,9 @@ jobs:
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add public/index.html public/assets/app.js
+          git add \
+            public/index.html \
+            public/assets/app.js
+
           git commit -m "Add GoatCounter analytics"
           git push origin HEAD:main
