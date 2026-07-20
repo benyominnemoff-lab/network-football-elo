@@ -1673,6 +1673,10 @@ function renderFAQ() {
       }
       setRouteMetadata(current);
       if (location.hash.startsWith("#/")) history.replaceState(null, "", cleanRouteURL(current.section, current.value, current.query));
+      window.goatcounter?.count?.({
+        path: location.pathname + location.search,
+        title: document.title,
+      });
       content.focus({ preventScroll: true });
     } catch (error) {
       console.error(error);
