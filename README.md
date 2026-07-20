@@ -41,6 +41,10 @@ shared with a contemporaneous elite reference can make a small, inward-looking
 historical network appear far more certain—and therefore far stronger across
 eras—than the evidence warrants. The latent posterior mean remains available
 inside the forecast calculation but is not published as a competing ranking.
+Because match forecasts use that latent strength distribution, venue and the
+attack/defence layer, the higher-rated team is not guaranteed to have the higher
+win probability. The rating is the cautious ranking output; the forecast is the
+full predictive output for one match.
 
 For an eligible match instance:
 
@@ -116,11 +120,12 @@ every competitive class and continuing prospective evaluation.
 The primary comparative result is the original five-block **nested historical
 holdout** over 46,801 matches from 1960 onward:
 
-| Model | Three-way log loss |
-| --- | ---: |
-| NFELO network | **0.884219** |
-| Best tested scalar Elo | 0.892970 |
-| Published World Football Elo forecast | 0.902619 |
+| Model | Three-way log loss | Most-likely W/D/L correct |
+| --- | ---: | ---: |
+| NFELO network | **0.884219** | **59.095%** |
+| Best tested scalar Elo | 0.892970 | 58.527% |
+| G-Elo comparison | 0.895187 | 58.779% |
+| Published World Football Elo forecast | 0.902619 | 58.804% |
 
 Choices used earlier periods and were scored on later periods. The aggregate
 result is retained, but the original fitter programs and frozen derived dataset

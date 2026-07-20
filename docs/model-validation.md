@@ -179,6 +179,15 @@ M_i  = 2000 + rho_i × (mu_i - B)
 NR_i = M_i - 1.6448536269514715 × sqrt(Sigma_ii)
 ```
 
+That rating and the match forecast deliberately use different views of the
+same network state. The rating applies opponent-breadth shrinkage and a
+conservative marginal-uncertainty deduction so rankings remain credible across
+uneven schedules and eras. The forecast uses the latent strength difference,
+its covariance, venue and the probability-only attack/defence state. A higher
+public rating therefore does not guarantee a higher win probability in a
+particular match; forcing that agreement would discard tested predictive
+information.
+
 The marginal uncertainty deliberately preserves common-mode network
 uncertainty. No manual era penalty, British-team cap or result override is
 used.

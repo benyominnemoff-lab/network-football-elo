@@ -20,12 +20,14 @@
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   });
+  const yearNumber = (value) => Number(value).toLocaleString("en", { useGrouping: false });
   const rating = (value) => value == null ? "—" : Number(value).toLocaleString("en", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
     useGrouping: false,
   });
   const percent = (value) => `${number(value * 100, 1)}%`;
+  const precisePercent = (value) => `${number(value * 100, 3)}%`;
   const todayISO = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -171,6 +173,10 @@
     const labels = ["W", "D", "L"];
     const classes = ["pw", "pd", "pl"];
     return `<div class="probability" aria-label="Win ${percent(values[0])}, draw ${percent(values[1])}, loss ${percent(values[2])}">${values.map((value, index) => `<span class="${classes[index]}" style="width:${Math.max(12, value * 100)}%" title="${labels[index]} ${percent(value)}">${number(value * 100, 0)}</span>`).join("")}</div>`;
+  }
+
+  function ratingForecastExplanation() {
+    return `<div class="callout forecast-explanation"><b>Why can the lower-rated team be the forecast favourite?</b> The public rating is deliberately reduced for limited opponent breadth and uncertainty so rankings remain cautious and comparable across eras. Match probabilities use the model's underlying strength estimate, its uncertainty and team-specific attack and defence tendencies. The two outputs therefore answer related but different questions. <a href="#/methodology">How ratings and forecasts fit together →</a></div>`;
   }
 
   function poissonWDL(lambdaA, lambdaB) {
@@ -528,6 +534,7 @@
     content.innerHTML = `
       <div class="page">
         <header class="page-heading"><div><p class="eyebrow">International results since 1872</p><h1>Matches</h1></div><p class="lede">Browse the complete match history. Probabilities and ratings are calculated using only information available before each match.</p></header>
+        ${ratingForecastExplanation()}
         <div class="toolbar">
           <div class="field"><label for="match-decade">Era</label><select id="match-decade"><option value="all">All ${number(summary.meta.matches)} matches</option>${index.decades.slice().reverse().map((item) => `<option value="${item.decade}">${item.decade}s · ${number(item.count)}</option>`).join("")}</select></div>
           <div class="field"><label for="match-team">Team</label><select id="match-team"><option value="">Any team</option>${summary.teams.map((team) => `<option value="${escapeHTML(team.code)}" ${team.code === requestedTeam ? "selected" : ""}>${escapeHTML(team.nation)}</option>`).join("")}</select></div>
@@ -1022,6 +1029,7 @@
     content.innerHTML = `
       <div class="page predict-page">
         <header class="page-heading"><div><p class="eyebrow">Historical and current match calculator</p><h1>Predict a match</h1></div><p class="lede">Choose any date and two teams ranked on that date. The calculator shows W/D/L probabilities, a 6×6 exact-score grid and projected rating effects for margins from five goals either way.</p></header>
+        ${ratingForecastExplanation()}
         <div class="toolbar history-toolbar predict-date-toolbar">
           <div class="history-date-actions"><div class="field history-date-field"><label for="predict-date">Prediction date</label><div class="date-combo"><input id="predict-date" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/YYYY" value="${validDate(selectedDate)}" aria-describedby="predict-date-error"><button class="button" type="button" id="predict-calendar-button" aria-label="Open prediction-date calendar">Calendar</button><input id="predict-calendar" class="native-date-proxy" type="date" min="${historyIndex.first}" max="${today}" value="${selectedDate}" tabindex="-1" aria-hidden="true"></div><span id="predict-date-error" class="field-error" role="alert"></span></div><button class="button button-dark" type="button" id="predict-apply">Apply date</button></div>
         </div>
@@ -1356,8 +1364,8 @@ const FAQ_ITEMS = [
     answer: "Not in the traditional Elo sense. The competitive classes share the same underlying information ratio because progressively larger updates for qualifiers and tournaments did not improve the historical evaluation reliably. Friendlies are the supported exception: they supply 0.63901 times the network information of a competitive match. Friendly and competitive forecasts also retain separate probability calibration."
   },
   {
-    question: "Does that mean a friendly is treated exactly like a World Cup match?",
-    answer: "No. A friendly supplies exactly 0.63901 times the network information assigned to a competitive match before uncertainty is accounted for. That does not mean its displayed points change will always be exactly 63.901% as large: opponent strength, surprise, score margin, covariance and the joint matchday update all matter. Friendlies also use separate forecast calibration."
+    question: "Why is a friendly’s rating change not always 63.901% of a competitive match?",
+    answer: "The 0.63901 value multiplies the information entering the opponent-network update; it is not a multiplier applied to the final displayed points. Opponent strength, surprise, winning margin, uncertainty, covariance with other teams and every other result on the same date are evaluated together. Those interactions make the eventual rating movement nonlinear. Friendlies also have their own probability calibration."
   },
   {
     question: "How is home advantage handled?",
@@ -1373,7 +1381,11 @@ const FAQ_ITEMS = [
   },
   {
     question: "How are match probabilities calculated?",
-    answer: "The core rating model first estimates the relative strength of the teams, including home advantage and uncertainty. A hidden forecasting layer then uses team-specific attacking, defensive, scoring and draw tendencies to refine the win, draw and loss probabilities. This layer affects forecasts only. It does not change the displayed ratings, historical peaks or ranking order."
+    answer: "The opponent network first estimates the teams’ underlying relative strength, including venue and uncertainty. A hidden forecasting layer then uses team-specific attacking, defensive, scoring and draw tendencies to refine the win, draw and loss probabilities. These forecasts use more information than the single public rating and do not change displayed ratings, historical peaks or ranking order."
+  },
+  {
+    question: "Why can a lower-rated team be the forecast favourite?",
+    answer: "The public rating is a cautious ranking measure: it reduces the underlying estimate when opponent breadth is limited or uncertainty is high, which is important for comparisons across countries and eras. A match forecast instead uses the underlying strength difference, its uncertainty, venue and recent attack and defence tendencies. A team can therefore rank slightly lower yet have the higher win probability for a particular match. This is intentional, and historical testing found that forcing forecasts to follow the public rating would discard useful predictive information."
   },
   {
     question: "Why keep the forecasting layer separate from the rankings?",
@@ -1389,11 +1401,11 @@ const FAQ_ITEMS = [
   },
   {
     question: "How was the methodology selected?",
-    answer: "The core was selected using a five-block nested historical holdout: choices used earlier periods and were scored later. A subsequent audit ran thousands of additional fits and replays. A dedicated post-audit sensitivity study then replayed all 52312 results while varying only friendly information from zero to extreme values; 0.63901 gave the lowest retrospective log loss across 46806 scored forecasts from 1960 onward. That last comparison is labelled retrospective rather than presented as a new holdout."
+    answer: "The principal comparison used a five-block nested historical holdout: model choices used earlier periods and were scored on later periods. Structural checks and component replays were then used to test implementation details without relabelling retrospective results as new out-of-sample evidence. The friendly value 0.63901 came from a separate one-variable retrospective sensitivity analysis and is identified as such."
   },
   {
     question: "Is NFELO always more likely to predict the correct result than other systems?",
-    answer: "No model wins every comparison. NFELO performed better overall than the tested World Football Elo baseline across the complete historical evaluation, but the difference in correctly selected win, draw or loss outcomes is relatively modest. Much of the improvement comes from assigning more realistic probabilities, including when both systems choose the same result."
+    answer: "No. In the 46,801-match nested historical holdout, NFELO’s most likely win, draw or loss outcome was correct 59.095% of the time, compared with 58.804% for the published World Football Elo forecast, 58.779% for the tested G-Elo comparison and 58.527% for the best tested scalar Elo. The differences in top-choice accuracy are small. The current attack/defence layer is designed to preserve the network’s top choice, so it changes probability quality rather than this accuracy measure. NFELO’s clearer comparative advantage was in log loss, which evaluates all three probabilities."
   },
   {
     question: "What does better log loss mean in practice?",
@@ -1522,21 +1534,19 @@ function renderFAQ() {
     content.innerHTML = `
       <article class="page page-narrow prose">
         <p class="eyebrow">Exact model · evidence · limitations</p><h1>Methodology</h1>
-        <p class="lede">NFELO is a dynamic opponent-network model with one evidence-adjusted public rating and a probability-only attack and defence layer. The public rating deliberately protects rankings and cross-era records from thin or isolated schedules. All matches on a known date are forecast from the same prior state.</p>
+        <p class="lede">NFELO has one connected strength model with two outputs: a cautious public rating for rankings and records, and a match forecast that uses the underlying strength distribution plus team-specific scoring tendencies. Every match on a known date is predicted from the same start-of-day information.</p>
 
         <div class="method-summary">
           <h2>In plain English</h2>
           <ol>
-            <li><b>Freeze the start of the matchday.</b> Every match with the same complete date is predicted before any result from that date is learned.</li>
-            <li><b>Estimate strength through the opponent network.</b> A result informs both participants and, through shared opponents, the wider connected system.</li>
-            <li><b>Allow for uncertainty.</b> New or inactive teams are less certain; uncertainty falls as relevant evidence accumulates.</li>
-            <li><b>Calculate W/D/L.</b> Strength difference, venue, era and uncertainty produce the network forecast.</li>
-            <li><b>Check how the teams have been scoring.</b> A hidden attack and defence model estimates whether each team has recently scored or conceded more than its network strength suggests.</li>
-            <li><b>Blend without changing the network pick.</b> The score correction is retained up to the exact boundary at which the network's most likely W/D/L result would change.</li>
-            <li><b>Learn jointly after the date.</b> Surprise and winning margin determine the information supplied by each result; friendlies contribute 0.63901 times the network information of competitive matches, and all same-date evidence is applied in one order-invariant update.</li>
-            <li><b>Publish one cautious rating.</b> Opponent breadth and marginal uncertainty prevent a strong-looking but weakly connected historical cluster from dominating the rankings or record book.</li>
+            <li><b>Start before the matches.</b> Every match sharing a complete date is predicted before any result from that date enters the model.</li>
+            <li><b>Estimate underlying strength.</b> Results connect teams through opponents and shared opponents. The model also records how uncertain those estimates are.</li>
+            <li><b>Forecast the match.</b> Underlying strength, venue, football era and uncertainty produce an initial win/draw/loss forecast.</li>
+            <li><b>Add scoring tendencies.</b> A hidden attack and defence layer asks whether each team has recently scored or conceded more than its strength alone would suggest. It refines the probabilities without overturning the network's most likely outcome.</li>
+            <li><b>Learn from the completed date.</b> Surprise and goal margin determine how informative each result is. A friendly contributes 0.63901 times the network information of a competitive match, and all results on the date are learned together.</li>
+            <li><b>Publish the ranking.</b> The public rating starts from underlying strength but is reduced when opponent coverage is narrow or uncertainty is high. This keeps rankings and historical comparisons cautious.</li>
           </ol>
-          <p><b>The hidden score layer changes match probabilities only.</b> It never changes strength ratings, rankings, peaks or rating movements.</p>
+          <p><b>A higher public rating does not guarantee a higher match win probability.</b> The rating is the cautious ranking output; the forecast uses the fuller predictive state. The hidden attack and defence layer changes probabilities only and never changes rankings, peaks or rating movements.</p>
         </div>
 
         <h2>1. Latent strength and uncertainty</h2>
@@ -1553,7 +1563,7 @@ function renderFAQ() {
 
         <h2>3. Network W/D/L forecast</h2>
         <div class="formula">D = pD(y)·4E(1−E)<br>W = E−D/2<br>L = 1−E−D/2</div>
-        <p>This construction preserves <code>W + D/2 = E</code>. NFELO integrates W/D/L over the uncertainty <code>V = Σ₁₁+Σ₂₂−2Σ₁₂</code> with 11-point Gauss–Hermite quadrature. It then raises the probabilities to power <b>${number(p.forecast_temperature.friendly, 4)}</b> for friendlies or <b>${number(p.forecast_temperature.competitive, 4)}</b> for competitive matches and renormalises. Competitive classes share one state-update ratio; friendlies supply <b>${number(p.network.friendly_information_ratio, 5)}</b> times the network information of a competitive result.</p>
+        <p>This construction preserves <code>W + D/2 = E</code>. The strength difference here is the latent opponent-network difference, <b>not the difference between the two displayed ratings</b>. NFELO integrates W/D/L over <code>V = Σ₁₁+Σ₂₂−2Σ₁₂</code> with 11-point Gauss–Hermite quadrature, then raises the probabilities to power <b>${number(p.forecast_temperature.friendly, 4)}</b> for friendlies or <b>${number(p.forecast_temperature.competitive, 4)}</b> for competitive matches and renormalises.</p>
 
         <h2>4. Hidden attack and defence forecast</h2>
         <p>The probability-only layer tracks attack residual <code>Aᵢ</code> and defence residual <code>Dᵢ</code>. Its goal baseline uses the current and preceding ${number(f.goal_environment_years)} calendar years, with a ${number(f.goal_prior_matches)}-match prior at ${number(f.goal_prior_per_team, 2)} goals per team:</p>
@@ -1562,9 +1572,9 @@ function renderFAQ() {
         <div class="formula">rᵢ = clip[min(goalsᵢ,${number(f.parameters.goal_update_cap)})−λᵢ,−${number(f.parameters.goal_residual_cap)},+${number(f.parameters.goal_residual_cap)}]<br>Aᵢ′ = Aᵢ + (${number(f.parameters.learning_rate, 2)}/2)rᵢ<br>Dⱼ′ = Dⱼ − (${number(f.parameters.learning_rate, 2)}/2)rᵢ</div>
 
         <h3>Annual calibration and boundary gate</h3>
-        <p>At each January boundary, draw tilt, friendly/competitive powers and the linear-pool weight are fitted using only the preceding ${number(f.calibration_window_years)} complete years. The current calibration for ${number(f.calibration.year)} uses ${number(f.calibration.training_matches)} matches from ${number(f.calibration.training_first_year)}–${number(f.calibration.training_last_year)}.</p>
+        <p>At each January boundary, draw tilt, friendly/competitive powers and the linear-pool weight are fitted using only the preceding ${number(f.calibration_window_years)} complete years. The calibration for ${yearNumber(f.calibration.year)} uses ${number(f.calibration.training_matches)} matches from ${yearNumber(f.calibration.training_first_year)}–${yearNumber(f.calibration.training_last_year)}.</p>
         <div class="formula">Ppool = ${number(f.calibration.nfelo_weight, 4)}Pnetwork + ${number(f.calibration.score_weight, 4)}Pscore<br>Pfinal = Pnetwork + t(Ppool−Pnetwork)<br>t = largest value in [0,1] that preserves argmax(Pnetwork)</div>
-        <p>The older all-or-nothing gate restored the complete network vector when the pool crossed the boundary. The audited gate retains the maximum safe fraction instead, preserving every top pick while retaining useful probability information.</p>
+        <p>The boundary rule keeps the largest safe part of the scoring correction while preserving the network forecast's most likely win, draw or loss outcome.</p>
 
         <h3>Exact-score grid</h3>
         <p>The displayed score grid is reconciled to the final W/D/L vector. For a scoreline in outcome region <code>o</code>:</p>
@@ -1577,26 +1587,28 @@ function renderFAQ() {
         <div class="formula">Σ′ = [Σ⁻¹ + Σₖ cₖxₖxₖᵀ]⁻¹<br>μ′ = μ + Σ′Σₖgₖ</div>
         <p>This is an assumed-density Gaussian update, not an exact Bayesian posterior for the displayed three-way likelihood. It is invariant to arbitrary within-date row order. The friendly multiplier reduces both gradient and curvature before the joint update; the resulting displayed point movement is therefore not a simple fixed percentage.</p>
 
-        <h2>6. The one public NFELO rating</h2>
+        <h2>6. Public rating and match forecast</h2>
         <p>Let <code>B</code> be the mean latent strength of the ten strongest eligible active teams. Recent-opponent weights have an eight-year half-life; their effective distinct count gives breadth reliability <code>ρ=N/(N+4)</code>. The same public rating is used for current rankings, historical rankings, nation peaks and team pages:</p>
         <div class="formula">Mᵢ = 2000 + ρᵢ(μᵢ−B)<br>NRᵢ = Mᵢ − 1.644854√Σᵢᵢ</div>
         <p>The uncertainty term is the team's marginal posterior uncertainty. NFELO intentionally does <b>not</b> cancel uncertainty shared with the contemporaneous elite reference when making cross-era records: that common component contains information about how well an era or regional network is anchored to the rest of international football. Cancelling it can make a small, inward-looking historical group appear implausibly dominant.</p>
-        <p>The audit found that the unadjusted latent posterior mean is a useful short-horizon prediction signal. It remains inside the probability model, but it is not published as a second ranking because predictive ordering within a date and credible comparison across disconnected eras are different objectives.</p>
+        <p>The latent posterior mean is used for match prediction because it contains useful short-horizon information. The displayed rating additionally applies breadth adjustment and a conservative uncertainty deduction. Consequently, a team can have the higher public rating while its opponent has the higher win probability. That is not a contradiction: the rating asks which estimate is better supported for ranking and cross-era comparison, while the forecast asks what is most likely in one specified match.</p>
+        <p>The attack and defence layer can reshape the three probabilities but cannot reverse the latent network's top W/D/L choice. It does not alter the public rating. Matches and the prediction calculator show both outputs together so this distinction remains visible.</p>
         <p>For an eligible match record, the combined score is:</p>
         <div class="formula">Qᵢⱼ = Mᵢ+Mⱼ−1.644854√(Σᵢᵢ+Σⱼⱼ+2Σᵢⱼ)</div>
         <p>Teams require 30 previous matches before receiving a displayed rating or entering the record book. Current rankings additionally require an appearance within four years.</p>
 
-        <h2>7. What the validation numbers do—and do not—show</h2>
+        <h2 id="validation">7. Forecast validation</h2>
         <h3>Primary evidence: nested historical holdout</h3>
-        <div class="metric-grid"><div><span>NFELO network log loss</span><strong>${number(nested.log_loss, 4)}</strong></div><div><span>Best scalar Elo</span><strong>${number(nested.best_scalar_elo_log_loss, 4)}</strong></div><div><span>Published WFER</span><strong>${number(nested.published_wfe_log_loss, 4)}</strong></div><div><span>Top outcome correct</span><strong>${percent(nested.accuracy)}</strong></div></div>
-        <p>The original five-block rolling evaluation contains ${number(nested.matches)} predictions from 1960 onward. Model choices used earlier blocks and were tested on later blocks. Its exact original fitter programs and frozen derived dataset were not retained, so the aggregate report is persuasive comparative evidence but cannot currently be reconstructed bit-for-bit.</p>
+        <div class="table-hint" aria-hidden="true">Swipe to compare every method →</div><div class="table-shell parameter-table"><table><thead><tr><th>Method tested</th><th class="numeric">Log loss</th><th class="numeric">Most-likely W/D/L correct</th></tr></thead><tbody><tr><td><b>NFELO full-covariance network</b></td><td class="numeric"><b>${number(nested.log_loss, 6)}</b></td><td class="numeric"><b>${precisePercent(nested.accuracy)}</b></td></tr><tr><td>Best tested scalar Elo</td><td class="numeric">${number(nested.best_scalar_elo_log_loss, 6)}</td><td class="numeric">${precisePercent(nested.best_scalar_elo_accuracy)}</td></tr><tr><td>G-Elo comparison</td><td class="numeric">${number(nested.g_elo_log_loss, 6)}</td><td class="numeric">${precisePercent(nested.g_elo_accuracy)}</td></tr><tr><td>Published World Football Elo forecast</td><td class="numeric">${number(nested.published_wfe_log_loss, 6)}</td><td class="numeric">${precisePercent(nested.published_wfe_accuracy)}</td></tr></tbody></table></div>
+        <p>The five-block rolling evaluation contains ${number(nested.matches)} predictions from 1960 onward. Choices were made using earlier periods and scored on later periods. NFELO selected the most likely W/D/L outcome ${precisePercent(nested.accuracy)} of the time, versus ${precisePercent(nested.published_wfe_accuracy)} for published WFER—a difference of ${number((nested.accuracy - nested.published_wfe_accuracy) * 100, 3)} percentage points. The current attack/defence layer preserves the network's top choice, so it can improve the probability vector but cannot change this accuracy figure. Log loss is primary because it evaluates all three probabilities and penalises unjustified confidence. Lower is better.</p>
+        <p>These are the methods included in the recorded comparison, not a claim to cover every football forecasting method. The original fitter programs and frozen derived evaluation dataset were not retained, so the aggregate comparison cannot currently be reconstructed bit-for-bit.</p>
 
         <h3>Secondary evidence: retrospective replay</h3>
         <div class="metric-grid"><div><span>Final layer log loss</span><strong>${number(replay.log_loss, 4)}</strong></div><div><span>Network-only log loss</span><strong>${number(replay.network_only_log_loss, 4)}</strong></div><div><span>Brier score</span><strong>${number(replay.brier, 4)}</strong></div><div><span>Top outcome correct</span><strong>${percent(replay.accuracy)}</strong></div></div>
         <p>This ${number(replay.matches)}-match diagnostic replays final constants through the past to the fixed ${validDate(replay.cutoff)} cutoff. It is useful for component comparisons, including date batching and the boundary gate, but it is <b>not</b> a nested out-of-sample estimate and must not be compared as if it were the same experiment as ${number(nested.log_loss, 4)}.</p>
 
-        <h3>Friendly-information sensitivity</h3>
-        <p>A separate post-audit study replayed all 52312 source results and scored 46806 forecasts from 1960 through 19 July 2026 while varying only the friendly network-information ratio. The numerical minimum was <b>0.63901</b>: log loss fell from <b>0.880682</b> at equal weight to <b>0.880236</b>. A paired calendar-year bootstrap favoured the lower weight in 99.1% of samples, with a 95% improvement interval of 0.000076–0.000853. Nearby values from roughly 0.62 to 0.72 were practically close, so five decimal places describe the frozen release constant rather than measurement certainty.</p>
+        <h3>Why friendlies use 0.63901</h3>
+        <p>The friendly information ratio was assessed separately by replaying ${number(52312)} results and scoring ${number(46806)} forecasts from 1960 through 19 July 2026 while changing only that ratio. The numerical minimum was <b>0.63901</b>: retrospective log loss was <b>0.880236</b>, compared with <b>0.880682</b> at equal friendly and competitive weight. A paired calendar-year bootstrap favoured the reduced value in 99.1% of samples. Nearby values from roughly 0.62 to 0.72 were practically close, so 0.63901 is a frozen implementation constant rather than a claim of five-decimal statistical certainty. Competitive classes all use information ratio 1.</p>
 
         <h2>8. Reproducibility and limitations</h2>
         <p>The repository records a methodology version, source hash and first-published prospective forecast for every identified future fixture. Historical validation must be labelled as nested holdout, retrospective replay or prospective. Routine data refreshes rebuild history but do not refit the structural constants; annual probability calibration follows its declared prior-years-only rule.</p>

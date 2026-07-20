@@ -303,7 +303,7 @@ class StaticBuildTests(unittest.TestCase):
         sitemap = (ROOT / "public" / "sitemap.xml").read_text(encoding="utf-8")
         self.assertIn('href="#/faq">FAQ</a>', html)
         self.assertIn('case "faq": renderFAQ(); break;', javascript)
-        self.assertEqual(javascript.count('question: "'), 28)
+        self.assertEqual(javascript.count('question: "'), 29)
         self.assertIn("Search questions", javascript)
         self.assertIn("Expand all", javascript)
         self.assertIn("Collapse all", javascript)
@@ -441,21 +441,46 @@ class StaticBuildTests(unittest.TestCase):
     def test_methodology_explains_probability_only_layer_in_plain_english(self) -> None:
         javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
         for phrase in (
-            "Check how the teams have been scoring",
-            "changes match probabilities only",
+            "Add scoring tendencies",
+            "changes probabilities only",
             "Hidden attack and defence forecast",
             "Annual calibration and boundary gate",
             "preceding eight complete calendar years",
             "joint date update",
             "nested historical holdout",
             "retrospective replay",
-            "one public NFELO rating",
+            "Public rating and match forecast",
             "marginal posterior uncertainty",
-            "Friendly-information sensitivity",
+            "Why friendlies use 0.63901",
             "0.63901",
         ):
             self.assertIn(phrase, javascript)
         self.assertIn("applyForecastLayer", javascript)
+
+    def test_rating_forecast_explanation_and_validation_comparison(self) -> None:
+        javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
+        for phrase in (
+            "Why can the lower-rated team be the forecast favourite?",
+            "Why can a lower-rated team be the forecast favourite?",
+            "ratingForecastExplanation()",
+            "Best tested scalar Elo",
+            "G-Elo comparison",
+            "Published World Football Elo forecast",
+            "precisePercent(nested.published_wfe_accuracy)",
+            "yearNumber(f.calibration.year)",
+            "yearNumber(f.calibration.training_first_year)",
+            "yearNumber(f.calibration.training_last_year)",
+        ):
+            self.assertIn(phrase, javascript)
+        self.assertNotIn("number(f.calibration.year)", javascript)
+        self.assertNotIn("number(f.calibration.training_first_year)", javascript)
+        self.assertNotIn("number(f.calibration.training_last_year)", javascript)
+        self.assertNotIn("Does that mean a friendly is treated exactly like a World Cup match?", javascript)
+        nested = self.summary["validation"]["nested"]
+        self.assertEqual(nested["best_scalar_elo_accuracy"], 0.58527)
+        self.assertEqual(nested["g_elo_log_loss"], 0.895187)
+        self.assertEqual(nested["g_elo_accuracy"], 0.58779)
+        self.assertEqual(nested["published_wfe_accuracy"], 0.58804)
 
     def test_same_date_and_publication_safeguards_are_present(self) -> None:
         model = (ROOT / "scripts" / "model.py").read_text(encoding="utf-8")

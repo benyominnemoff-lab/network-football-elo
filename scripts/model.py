@@ -923,7 +923,11 @@ class NetworkEloReplay:
                     "log_loss": 0.8842187104883077,
                     "accuracy": 0.59095,
                     "best_scalar_elo_log_loss": 0.8929697600474259,
+                    "best_scalar_elo_accuracy": 0.58527,
+                    "g_elo_log_loss": 0.895187,
+                    "g_elo_accuracy": 0.58779,
                     "published_wfe_log_loss": 0.9026185159798847,
+                    "published_wfe_accuracy": 0.58804,
                 },
                 "retrospective": {
                     "description": "Final constants replayed by the deployed chronology through the fixed audit cutoff",
