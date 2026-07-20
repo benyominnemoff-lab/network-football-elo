@@ -1,9 +1,9 @@
 {
-  "source_checked_at": "2026-07-19T22:56:01+00:00",
+  "source_checked_at": "2026-07-20T01:13:33+00:00",
   "mode": "multi-source open-results supplement",
   "base_snapshot_through": "2026-07-19",
   "supplemental_results": 0,
-  "upcoming_fixtures": 352,
+  "upcoming_fixtures": 351,
   "open_feed_rows": 49520,
   "unresolved_names": [],
   "base_urls": [
@@ -16,17 +16,12 @@
   "wfe_fixture_rows": 195,
   "integrity": "All result and fixture sources passed schema, size, date, score, alias and conflict checks",
   "base_snapshot": {
-    "source_checked_at": "2026-07-19T22:55:58+00:00",
+    "source_checked_at": "2026-07-20T01:13:31+00:00",
     "mode": "rating-change detection",
     "world_teams": 244,
-    "pages_checked": 4,
-    "pages_changed": 4,
-    "changed": [
-      "Spain",
-      "Argentina",
-      "Vietnam",
-      "Myanmar"
-    ],
+    "pages_checked": 0,
+    "pages_changed": 0,
+    "changed": [],
     "unresolved_world_names": [],
     "base_url": "https://www.eloratings.net",
     "integrity": "all downloaded rows passed schema and rewrite guards"

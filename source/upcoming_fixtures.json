@@ -5,21 +5,8 @@
     "https://www.eloratings.net/fixtures.tsv",
     "TheSportsDB v1 schedule API"
   ],
-  "checked_at": "2026-07-19T22:56:01+00:00",
+  "checked_at": "2026-07-20T01:13:33+00:00",
   "fixtures": [
-    {
-      "date": "2026-07-19",
-      "team1_code": "ES",
-      "team2_code": "AR",
-      "team1_name": "Spain",
-      "team2_name": "Argentina",
-      "tournament_code": "WC",
-      "tournament_name": "FIFA World Cup",
-      "city": "New York/New Jersey (East Rutherford)",
-      "country": "United States",
-      "neutral": true,
-      "home_sign": 0
-    },
     {
       "date": "2026-07-24",
       "date_precision": "day",
