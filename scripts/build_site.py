@@ -344,11 +344,15 @@ def build_historical_rankings(data: Path, output: Any) -> None:
 
     matchdays_by_year: dict[int, set[str]] = {}
     world_cup_days: dict[int, list[str]] = {}
+    world_cup_teams: dict[int, set[str]] = {}
     for match in output.matches:
         year = int(match["year"])
         matchdays_by_year.setdefault(year, set()).add(match["date"])
         if match["t"] in {"World Cup", "FIFA World Cup"}:
             world_cup_days.setdefault(year, []).append(match["date"])
+            world_cup_teams.setdefault(year, set()).update(
+                (match["a"], match["b"])
+            )
 
     matches_by_day_team: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for match in output.matches:
@@ -488,6 +492,7 @@ def build_historical_rankings(data: Path, output: Any) -> None:
             "year": year,
             "before": (date.fromisoformat(first) - timedelta(days=1)).isoformat(),
             "after": last,
+            "teams": sorted(world_cup_teams.get(year, set())),
         })
     write_json(data / "rankings-history" / "index.json", {
         "first": first_date, "last": last_date, "years": years, "world_cups": world_cups,
