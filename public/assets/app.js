@@ -549,12 +549,17 @@
     await loadDate(selected);
   }
 
+
   function tournamentChangeHTML(value, kind) {
     if (value == null || !Number.isFinite(Number(value))) {
-      return `<span class="tournament-change movement-flat">—</span>`;
+      return `<span class="tournament-change movement-flat" title="No comparable published ${kind}">—</span>`;
     }
     const change = Number(value);
-    const direction = change > 0 ? "movement-up" : change < 0 ? "movement-down" : "movement-flat";
+    const direction = change > 0
+      ? "movement-up"
+      : change < 0
+        ? "movement-down"
+        : "movement-flat";
     const arrow = change > 0 ? "▲" : change < 0 ? "▼" : "•";
     if (kind === "rank") {
       const places = Math.abs(change);
@@ -568,16 +573,26 @@
   }
 
   function tournamentRankingsTable(items, selectedDate, showMovement) {
-    if (!items.length) return `<div class="empty"><h2>No ranked participants</h2><p>No participating team was eligible for the published ranking at this snapshot.</p></div>`;
+    if (!items.length) {
+      return `<div class="empty"><h2>No participants</h2><p>No participating teams were recorded for this edition.</p></div>`;
+    }
     return `<div class="table-hint" aria-hidden="true">Swipe to see more →</div><div class="table-shell tournament-table"><table>
       <thead><tr><th class="numeric">Rank</th><th>Team</th><th class="numeric">Rating</th><th class="numeric hide-mobile">Adjusted estimate</th><th class="numeric hide-mobile">Matches</th><th>Recent form</th><th class="hide-mobile">Last match</th></tr></thead>
-      <tbody>${items.map((team, index) => `<tr>
-        <td class="rank-cell numeric"><span class="tournament-cell-main">${team.rank ?? index + 1}</span>${showMovement ? tournamentChangeHTML(team.tournament_rank_change, "rank") : ""}</td>
-        <td>${teamLink(team.code, team.nation, selectedDate)}</td>
-        <td class="numeric"><span class="rating-main">${rating(team.rating)}</span>${showMovement ? tournamentChangeHTML(team.tournament_rating_change, "rating") : ""}<span class="rating-sub">uncertainty ${rating(team.se)}</span></td>
-        <td class="numeric hide-mobile">${rating(team.mean)}</td><td class="numeric hide-mobile">${number(team.matches)}</td>
-        <td>${formHTML(team.form || [])}</td><td class="hide-mobile">${validDate(team.date)}</td>
-      </tr>`).join("")}</tbody></table></div>`;
+      <tbody>${items.map((team) => {
+        const rankValue = team.rank == null ? "—" : team.rank;
+        const ratingNote = team.rating == null
+          ? "Not rated"
+          : `uncertainty ${rating(team.se)}`;
+        return `<tr>
+          <td class="rank-cell numeric"><span class="tournament-cell-main">${rankValue}</span>${showMovement ? tournamentChangeHTML(team.tournament_rank_change, "rank") : ""}</td>
+          <td>${teamLink(team.code, team.nation, selectedDate)}</td>
+          <td class="numeric"><span class="rating-main">${rating(team.rating)}</span>${showMovement ? tournamentChangeHTML(team.tournament_rating_change, "rating") : ""}<span class="rating-sub">${ratingNote}</span></td>
+          <td class="numeric hide-mobile">${rating(team.mean)}</td>
+          <td class="numeric hide-mobile">${team.matches == null ? "—" : number(team.matches)}</td>
+          <td>${team.form?.length ? formHTML(team.form) : `<span class="muted">—</span>`}</td>
+          <td class="hide-mobile">${team.date ? validDate(team.date) : "—"}</td>
+        </tr>`;
+      }).join("")}</tbody></table></div>`;
   }
 
   async function renderTournaments(route) {
@@ -593,31 +608,43 @@
       return;
     }
 
-    const requestedFamily = families.find((family) => family.id === route.query.get("tournament"));
-    const defaultFamily = families.find((family) => family.name === "FIFA World Cup") || families[0];
+    const requestedFamily = families.find(
+      (family) => family.id === route.query.get("tournament"),
+    );
+    const defaultFamily = families.find(
+      (family) => family.name === "FIFA World Cup",
+    ) || families[0];
     let selectedFamily = requestedFamily || defaultFamily;
-    let selectedEdition = selectedFamily.editions.find((edition) => edition.id === route.query.get("edition")) || selectedFamily.editions[0];
-    let selectedView = route.query.get("view") === "before" ? "before" : "after";
+    let selectedEdition = selectedFamily.editions.find(
+      (edition) => edition.id === route.query.get("edition"),
+    ) || selectedFamily.editions[0];
+    let selectedView = route.query.get("view") === "before"
+      ? "before"
+      : "after";
 
-    const familyOptions = (tournamentIndex.categories || []).map((category) => {
-      const options = families
-        .filter((family) => family.category === category)
-        .map((family) => `<option value="${escapeHTML(family.id)}">${escapeHTML(family.name)}</option>`)
-        .join("");
-      return options ? `<optgroup label="${escapeHTML(category)}">${options}</optgroup>` : "";
-    }).join("");
+    const familyOptions = (tournamentIndex.categories || []).map(
+      (category) => {
+        const options = families
+          .filter((family) => family.category === category)
+          .map((family) => `<option value="${escapeHTML(family.id)}">${escapeHTML(family.name)}</option>`)
+          .join("");
+        return options
+          ? `<optgroup label="${escapeHTML(category)}">${options}</optgroup>`
+          : "";
+      },
+    ).join("");
 
     content.innerHTML = `<div class="page tournament-page">
-      <header class="page-heading"><div><p class="eyebrow">Tournament snapshots</p><h1>Tournaments</h1></div><p class="lede">Select a competition, edition and a snapshot immediately before or after the tournament. Only participating teams are shown, while rank positions remain their places in the full global table.</p></header>
+      <header class="page-heading"><div><p class="eyebrow">Tournament snapshots</p><h1>Tournaments</h1></div><p class="lede">Select a competition, edition and a snapshot immediately before or after the tournament. Every participating team is listed, while published rank positions remain their places in the full global table.</p></header>
       <div class="toolbar tournament-toolbar">
         <div class="field field-grow"><label for="tournament-family">Tournament</label><select id="tournament-family">${familyOptions}</select></div>
         <div class="field"><label for="tournament-edition">Edition</label><select id="tournament-edition"></select></div>
         <div class="field"><label for="tournament-view">Snapshot</label><select id="tournament-view"><option value="before">Before tournament</option><option value="after">After tournament</option></select></div>
       </div>
-      <div class="record-note"><strong id="tournament-count">—</strong><div><b id="tournament-label">Ranked participants</b><br><span id="tournament-description">Choose a tournament edition.</span></div></div>
+      <div class="record-note"><strong id="tournament-count">—</strong><div><b id="tournament-label">Participants</b><br><span id="tournament-description">Choose a tournament edition.</span></div></div>
       <div class="toolbar compact-toolbar">
         <div class="field field-grow"><label for="tournament-search">Find a team</label><input id="tournament-search" type="search" placeholder="Brazil, Thailand, Morocco…" value="${escapeHTML(route.query.get("q") || "")}"></div>
-        <div class="field"><label for="tournament-sort">Sort</label><select id="tournament-sort"><option value="rating">Rating</option><option value="mean">Adjusted estimate</option><option value="matches">Matches played</option><option value="name">Name</option></select></div>
+        <div class="field"><label for="tournament-sort">Sort</label><select id="tournament-sort"></select></div>
       </div>
       <div id="tournament-table"></div>
     </div>`;
@@ -627,8 +654,10 @@
     const viewSelect = document.getElementById("tournament-view");
     const sortSelect = document.getElementById("tournament-sort");
     const table = document.getElementById("tournament-table");
-    const validSorts = ["rating", "mean", "matches", "name"];
-    sortSelect.value = validSorts.includes(route.query.get("sort")) ? route.query.get("sort") : "rating";
+    const summaryNames = new Map(
+      summary.teams.map((team) => [team.code, team.nation]),
+    );
+    const requestedSort = route.query.get("sort") || "rating";
     familySelect.value = selectedFamily.id;
     viewSelect.value = selectedView;
     let teams = [];
@@ -637,27 +666,72 @@
       editionSelect.innerHTML = selectedFamily.editions
         .map((edition) => `<option value="${escapeHTML(edition.id)}">${escapeHTML(edition.label)}</option>`)
         .join("");
-      selectedEdition = selectedFamily.editions.find((edition) => edition.id === preferredId) || selectedFamily.editions[0];
+      selectedEdition = selectedFamily.editions.find(
+        (edition) => edition.id === preferredId,
+      ) || selectedFamily.editions[0];
       editionSelect.value = selectedEdition.id;
     };
 
-    populateEditions(selectedEdition.id);
+    const syncSortOptions = (preferred = sortSelect.value || requestedSort) => {
+      sortSelect.innerHTML = selectedView === "after"
+        ? `<option value="rating">Rating</option><option value="rating_gain">Rating gain</option><option value="name">Name</option>`
+        : `<option value="rating">Rating</option><option value="name">Name</option>`;
+      const allowed = selectedView === "after"
+        ? new Set(["rating", "rating_gain", "name"])
+        : new Set(["rating", "name"]);
+      sortSelect.value = allowed.has(preferred)
+        ? preferred
+        : "rating";
+    };
 
-    const saveTournamentRoute = () => replaceRouteQuery("tournaments", {
-      tournament: selectedFamily.id,
-      edition: selectedEdition.id,
-      view: selectedView,
-      q: document.getElementById("tournament-search").value.trim(),
-      sort: sortSelect.value === "rating" ? "" : sortSelect.value,
-    });
+    populateEditions(selectedEdition.id);
+    syncSortOptions();
+
+    const saveTournamentRoute = () => replaceRouteQuery(
+      "tournaments",
+      {
+        tournament: selectedFamily.id,
+        edition: selectedEdition.id,
+        view: selectedView,
+        q: document.getElementById("tournament-search").value.trim(),
+        sort: sortSelect.value === "rating"
+          ? ""
+          : sortSelect.value,
+      },
+    );
+
+    const descendingValue = (team, key) => {
+      if (team[key] == null || team[key] === "") return -Infinity;
+      const value = Number(team[key]);
+      return Number.isFinite(value) ? value : -Infinity;
+    };
 
     const updateTable = () => {
-      const query = document.getElementById("tournament-search").value.trim().toLocaleLowerCase();
+      const query = document
+        .getElementById("tournament-search")
+        .value.trim()
+        .toLocaleLowerCase();
       const sort = sortSelect.value;
-      const visible = teams.filter((team) => team.nation.toLocaleLowerCase().includes(query));
-      visible.sort((a, b) => sort === "name"
-        ? a.nation.localeCompare(b.nation)
-        : (b[sort] ?? -Infinity) - (a[sort] ?? -Infinity) || a.nation.localeCompare(b.nation));
+      const visible = teams.filter(
+        (team) => team.nation.toLocaleLowerCase().includes(query),
+      );
+      visible.sort((a, b) => {
+        if (sort === "name") {
+          return a.nation.localeCompare(b.nation);
+        }
+        if (sort === "rating_gain") {
+          return (
+            descendingValue(b, "tournament_rating_change")
+            - descendingValue(a, "tournament_rating_change")
+            || a.nation.localeCompare(b.nation)
+          );
+        }
+        return (
+          descendingValue(b, "rating")
+          - descendingValue(a, "rating")
+          || a.nation.localeCompare(b.nation)
+        );
+      });
       table.innerHTML = tournamentRankingsTable(
         visible,
         selectedEdition[selectedView],
@@ -665,54 +739,124 @@
       );
     };
 
+    const editionParticipants = () => {
+      if (Array.isArray(selectedEdition.participants)) {
+        return selectedEdition.participants;
+      }
+      return (selectedEdition.teams || []).map((code) => ({
+        code,
+        nation: summaryNames.get(code) || code,
+      }));
+    };
+
     const loadSelection = async () => {
+      syncSortOptions();
       saveTournamentRoute();
       const snapshotDate = selectedEdition[selectedView];
       table.innerHTML = `<div class="loading-shell"><span class="spinner"></span><p>Loading ${escapeHTML(selectedFamily.name)} ${escapeHTML(selectedEdition.label)}…</p></div>`;
-      const ranked = await loadHistoricalSnapshot(historyIndex, snapshotDate);
-      const participantCodes = new Set(selectedEdition.teams || []);
-      teams = ranked.filter((team) => participantCodes.has(team.code));
+
+      const ranked = await loadHistoricalSnapshot(
+        historyIndex,
+        snapshotDate,
+      );
+      const rankedByCode = new Map(
+        ranked.map((team) => [team.code, team]),
+      );
+      const participants = editionParticipants();
+      teams = participants.map((participant) => {
+        const rankedTeam = rankedByCode.get(participant.code);
+        if (rankedTeam) {
+          return {
+            ...rankedTeam,
+            nation: rankedTeam.nation
+              || participant.nation
+              || summaryNames.get(participant.code)
+              || participant.code,
+          };
+        }
+        return {
+          code: participant.code,
+          nation: participant.nation
+            || summaryNames.get(participant.code)
+            || participant.code,
+          rank: null,
+          rating: null,
+          mean: null,
+          se: null,
+          matches: null,
+          form: [],
+          date: null,
+        };
+      });
 
       if (selectedView === "after") {
-        const beforeRanked = await loadHistoricalSnapshot(historyIndex, selectedEdition.before);
-        const beforeByCode = new Map(beforeRanked.map((team) => [team.code, team]));
+        const beforeRanked = await loadHistoricalSnapshot(
+          historyIndex,
+          selectedEdition.before,
+        );
+        const beforeByCode = new Map(
+          beforeRanked.map((team) => [team.code, team]),
+        );
         teams = teams.map((team) => {
           const before = beforeByCode.get(team.code);
+          const comparable = before && team.rating != null;
           return {
             ...team,
-            tournament_rank_change: before ? before.rank - team.rank : null,
-            tournament_rating_change: before ? team.rating - before.rating : null,
+            tournament_rank_change: (
+              comparable && team.rank != null
+                ? before.rank - team.rank
+                : null
+            ),
+            tournament_rating_change: comparable
+              ? team.rating - before.rating
+              : null,
           };
         });
       }
 
-      const totalParticipants = (selectedEdition.teams || []).length;
-      document.getElementById("tournament-count").textContent = `${number(teams.length)} / ${number(totalParticipants)}`;
-      document.getElementById("tournament-label").textContent = `${selectedFamily.name} · ${selectedEdition.label}`;
-      document.getElementById("tournament-description").textContent = selectedView === "after"
-        ? `Ranked participants immediately after the tournament ended on ${validDate(selectedEdition.after)}. Movement in the Rank and Rating cells compares the full global table with ${validDate(selectedEdition.before)}.`
-        : `Ranked participants immediately before the tournament began on ${validDate(selectedEdition.start)}. Rank numbers are positions in the full global table.`;
-      setTitle(`${selectedFamily.name} ${selectedEdition.label}`);
+      const rankedCount = teams.filter(
+        (team) => team.rating != null,
+      ).length;
+      document.getElementById("tournament-count").textContent =
+        number(teams.length);
+      document.getElementById("tournament-label").textContent =
+        `${selectedFamily.name} · ${selectedEdition.label}`;
+      document.getElementById("tournament-description").textContent =
+        selectedView === "after"
+          ? `All ${number(teams.length)} participants are shown, including teams without a published rating. ${number(rankedCount)} had a published rating immediately after the tournament. Rank and rating movement compare the full global tables before and after the event.`
+          : `All ${number(teams.length)} participants are shown, including teams without a published rating. ${number(rankedCount)} had a published rating immediately before the tournament.`;
+      setTitle(
+        `${selectedFamily.name} ${selectedEdition.label}`,
+      );
       updateTable();
     };
 
     familySelect.addEventListener("change", () => {
-      selectedFamily = families.find((family) => family.id === familySelect.value) || families[0];
+      selectedFamily = families.find(
+        (family) => family.id === familySelect.value,
+      ) || families[0];
       populateEditions();
       loadSelection();
     });
     editionSelect.addEventListener("change", () => {
-      selectedEdition = selectedFamily.editions.find((edition) => edition.id === editionSelect.value) || selectedFamily.editions[0];
+      selectedEdition = selectedFamily.editions.find(
+        (edition) => edition.id === editionSelect.value,
+      ) || selectedFamily.editions[0];
       loadSelection();
     });
     viewSelect.addEventListener("change", () => {
-      selectedView = viewSelect.value === "before" ? "before" : "after";
+      selectedView = viewSelect.value === "before"
+        ? "before"
+        : "after";
+      syncSortOptions();
       loadSelection();
     });
-    document.getElementById("tournament-search").addEventListener("input", () => {
-      saveTournamentRoute();
-      updateTable();
-    });
+    document
+      .getElementById("tournament-search")
+      .addEventListener("input", () => {
+        saveTournamentRoute();
+        updateTable();
+      });
     sortSelect.addEventListener("change", () => {
       saveTournamentRoute();
       updateTable();

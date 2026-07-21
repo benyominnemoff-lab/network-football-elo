@@ -760,6 +760,91 @@ class StaticBuildTests(unittest.TestCase):
             (ROOT / "public" / "tournaments" / "index.html").exists()
         )
 
+
+    def test_tournament_catalog_codes_participants_and_sorting(self) -> None:
+        catalog = json.loads(
+            (self.data / "tournaments" / "index.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        owners: dict[str, set[str]] = {}
+        by_name = {
+            family["name"]: family
+            for family in catalog["families"]
+        }
+        for family in catalog["families"]:
+            for code in family.get("source_codes", []):
+                owners.setdefault(code, set()).add(family["name"])
+            for edition in family["editions"]:
+                participants = edition.get("participants", [])
+                self.assertEqual(
+                    {item["code"] for item in participants},
+                    set(edition["teams"]),
+                )
+                self.assertEqual(
+                    len(participants),
+                    len(edition["teams"]),
+                )
+                self.assertTrue(
+                    all(item["nation"] for item in participants)
+                )
+
+        self.assertEqual(
+            set(by_name["Olympic Games"]["source_codes"]),
+            {"OG"},
+        )
+        self.assertNotIn("OQ", owners)
+        self.assertNotIn("OGC", owners)
+
+        expected_owners = {
+            "BGC": "Bangabandhu Gold Cup",
+            "NGC": "Nehru Gold Cup",
+            "PRG": "President's Gold Cup",
+            "CFC": "CONCACAF Cup",
+            "SQC": "AFC Challenge Cup",
+            "NQC": "Central American Cup",
+            "NQU": "UNCAF Nations Cup",
+            "FQC": "Caribbean Cup",
+            "FQB": "Caribbean Championship",
+        }
+        for code, family_name in expected_owners.items():
+            if code in owners:
+                self.assertEqual(owners[code], {family_name})
+
+        gold_codes = set(
+            by_name["CONCACAF Gold Cup"]["source_codes"]
+        )
+        self.assertFalse(
+            gold_codes & {"BGC", "NGC", "PRG"}
+        )
+
+        pure_qualifier_codes = {
+            "OQ", "GCQ", "CHQ", "CHT", "TGQ", "AEQ",
+            "SEQ", "SET", "CLQ", "NLQ", "UNQ", "UNT",
+            "EAQ", "EAT", "ARQ", "AQT",
+        }
+        self.assertFalse(pure_qualifier_codes & owners.keys())
+
+        javascript = (
+            ROOT / "public" / "assets" / "app.js"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            '<option value="rating">Rating</option>'
+            '<option value="rating_gain">Rating gain</option>'
+            '<option value="name">Name</option>',
+            javascript,
+        )
+        self.assertIn(
+            '<option value="rating">Rating</option>'
+            '<option value="name">Name</option>',
+            javascript,
+        )
+        self.assertIn("editionParticipants", javascript)
+        self.assertIn(
+            "including teams without a published rating",
+            javascript,
+        )
+
     def test_public_metadata_and_discovery_files(self) -> None:
         public = ROOT / "public"
         html = (public / "index.html").read_text(encoding="utf-8")

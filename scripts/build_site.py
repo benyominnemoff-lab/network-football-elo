@@ -321,12 +321,164 @@ def build_ranking_movements(output: Any) -> None:
 
 
 
+
 TOURNAMENT_CATEGORY_ORDER = {
     "Global championships": 0,
     "Continental championships": 1,
     "Nations leagues": 2,
     "Regional championships": 3,
     "Other tournaments": 4,
+}
+
+
+# Use source tournament codes for every known merged family. Display
+# names are not unique: several unrelated competitions contain names
+# such as "Gold Cup", and many qualifying events also mention the
+# tournament whose finals they lead to.
+TOURNAMENT_CODE_FAMILIES: dict[str, tuple[str, str]] = {
+    # Global championships and intercontinental events.
+    "WC": ("Global championships", "FIFA World Cup"),
+    "OG": ("Global championships", "Olympic Games"),
+    "CC": ("Global championships", "FIFA Confederations Cup"),
+    "IC": ("Global championships", "Intercontinental Championship"),
+    "AAC": ("Global championships", "Afro-Asian Cup"),
+    "AFT": ("Global championships", "Intercontinental champions match"),
+    "WFC": ("Global championships", "World Football Cup"),
+    "MWC": ("Global championships", "Mini World Cup"),
+    "MND": ("Global championships", "Mundialito"),
+    "CFC": ("Regional championships", "CONCACAF Cup"),
+
+    # Continental championships.
+    "EC": ("Continental championships", "UEFA European Championship"),
+    "CA": ("Continental championships", "Copa América"),
+    "SA": ("Continental championships", "Copa América"),
+    "SA1": ("Continental championships", "Copa América"),
+    "SA2": ("Continental championships", "Copa América"),
+    "AC": ("Continental championships", "AFC Asian Cup"),
+    "AR": ("Continental championships", "Africa Cup of Nations"),
+    "CCH": ("Continental championships", "CONCACAF Gold Cup"),
+    "CGC": ("Continental championships", "CONCACAF Gold Cup"),
+    "WQC": ("Continental championships", "CONCACAF Gold Cup"),
+    "FCQ": ("Continental championships", "CONCACAF Gold Cup"),
+    "FBQ": ("Continental championships", "CONCACAF Gold Cup"),
+    "NUQ": ("Continental championships", "CONCACAF Gold Cup"),
+    "OC": ("Continental championships", "OFC Nations Cup"),
+    "OCT": ("Continental championships", "OFC Nations Cup"),
+    "WQO": ("Continental championships", "OFC Nations Cup"),
+    "PAC": ("Continental championships", "Panamerican Championship"),
+    "ACH": ("Continental championships", "AFC Challenge Cup"),
+    "SQC": ("Continental championships", "AFC Challenge Cup"),
+    "ASC": ("Continental championships", "AFC Solidarity Cup"),
+
+    # Nations Leagues.
+    "NL": ("Nations leagues", "UEFA Nations League"),
+    "ENL": ("Nations leagues", "UEFA Nations League"),
+    "ENA": ("Nations leagues", "UEFA Nations League"),
+    "ENB": ("Nations leagues", "UEFA Nations League"),
+    "ENC": ("Nations leagues", "UEFA Nations League"),
+    "END": ("Nations leagues", "UEFA Nations League"),
+    "EAB": ("Nations leagues", "UEFA Nations League"),
+    "ABT": ("Nations leagues", "UEFA Nations League"),
+    "EBC": ("Nations leagues", "UEFA Nations League"),
+    "BCT": ("Nations leagues", "UEFA Nations League"),
+    "ECD": ("Nations leagues", "UEFA Nations League"),
+    "CDT": ("Nations leagues", "UEFA Nations League"),
+    "CNL": ("Nations leagues", "CONCACAF Nations League"),
+    "CLA": ("Nations leagues", "CONCACAF Nations League"),
+    "CLB": ("Nations leagues", "CONCACAF Nations League"),
+    "CLC": ("Nations leagues", "CONCACAF Nations League"),
+
+    # Regional championships and games.
+    "TGR": ("Regional championships", "ASEAN Championship"),
+    "ASE": ("Regional championships", "ASEAN Championship"),
+    "SEA": ("Regional championships", "ASEAN Championship"),
+    "ARC": ("Regional championships", "Arab Cup"),
+    "GLF": ("Regional championships", "Gulf Cup"),
+    "BC": ("Regional championships", "British Championship"),
+    "WQB": ("Regional championships", "British Championship"),
+    "EQB": ("Regional championships", "British Championship"),
+    "WQL": ("Regional championships", "Baltic Cup"),
+    "WQD": ("Regional championships", "Nordic Championship"),
+    "ON": ("Regional championships", "Nordic Championship"),
+    "EQN": ("Regional championships", "Nordic Championship"),
+    "CCC": ("Regional championships", "Central American Cup"),
+    "NQC": ("Regional championships", "Central American Cup"),
+    "UNC": ("Regional championships", "UNCAF Nations Cup"),
+    "NQU": ("Regional championships", "UNCAF Nations Cup"),
+    "CRC": ("Regional championships", "Caribbean Championship"),
+    "CRP": ("Regional championships", "Caribbean Championship"),
+    "CUC": ("Regional championships", "Caribbean Championship"),
+    "FQB": ("Regional championships", "Caribbean Championship"),
+    "FQP": ("Regional championships", "Caribbean Championship"),
+    "CBC": ("Regional championships", "Caribbean Cup"),
+    "CIB": ("Regional championships", "Caribbean Cup"),
+    "FQC": ("Regional championships", "Caribbean Cup"),
+    "EAH": ("Regional championships", "East Asian Championship"),
+    "WAH": ("Regional championships", "West Asian Championship"),
+    "SFF": ("Regional championships", "South Asian Championship"),
+    "CEC": ("Regional championships", "CECAFA Cup"),
+    "ECA": ("Regional championships", "CECAFA Cup"),
+    "CSF": ("Regional championships", "COSAFA Cup"),
+    "NGC": ("Regional championships", "Nehru Gold Cup"),
+    "BGC": ("Regional championships", "Bangabandhu Gold Cup"),
+    "PRG": ("Regional championships", "President's Gold Cup"),
+    "PAR": ("Regional championships", "Pan-Arab Games"),
+    "PGC": ("Regional championships", "Pan-Arab Games and Arab Cup"),
+    "ASG": ("Regional championships", "Asian Games"),
+    "AFG": ("Regional championships", "African Games"),
+    "PAG": ("Regional championships", "Panamerican Games"),
+    "PG": ("Regional championships", "Pacific Games"),
+    "SPG": ("Regional championships", "South Pacific Games"),
+    "WOS": ("Regional championships", "South Pacific Games"),
+    "OQG": ("Regional championships", "South Pacific Games"),
+    "PMG": ("Regional championships", "Pacific Mini-Games"),
+    "SPM": ("Regional championships", "South Pacific Mini-Games"),
+    "IG": ("Regional championships", "Island Games"),
+    "MNG": ("Regional championships", "Micronesian Games"),
+    "MNC": ("Regional championships", "Micronesian Cup"),
+    "MLN": ("Regional championships", "Melanesian Cup"),
+    "OCM": ("Regional championships", "Melanesian Cup"),
+    "PLN": ("Regional championships", "Polynesian Cup"),
+    "OCP": ("Regional championships", "Polynesian Cup"),
+    "CNU": ("Regional championships", "Central Asian Cup"),
+    "CAU": ("Regional championships", "Central Asian Cup"),
+    "WFU": ("Regional championships", "West African Nations Cup"),
+    "UEM": ("Regional championships", "UEMOA Tournament"),
+    "CMC": ("Regional championships", "CEMAC Cup"),
+    "UDC": ("Regional championships", "CEMAC Cup"),
+    "ZVT": ("Regional championships", "Zone V Tournament"),
+    "SAG": ("Regional championships", "South Asian Games"),
+    "SEG": ("Regional championships", "Southeast Asian Games"),
+    "SEP": ("Regional championships", "Southeast Asian Peninsula Games"),
+    "ACC": ("Regional championships", "Amilcar Cabral Cup"),
+    "AWA": (
+        "Regional championships",
+        "West African Cup and Amilcar Cabral Cup",
+    ),
+    "AQC": ("Regional championships", "Central African Cup"),
+    "CAR": ("Regional championships", "Central African Cup"),
+    "ACG": ("Regional championships", "Central African Games"),
+    "CFG": ("Regional championships", "Central African Games"),
+    "AQW": ("Regional championships", "West African Cup"),
+    "WAN": ("Regional championships", "West African Cup"),
+    "WAC": ("Regional championships", "West African Cup"),
+    "ECW": ("Regional championships", "ECOWAS Tournament"),
+    "COC": ("Regional championships", "CEDEAO Cup"),
+    "UDE": ("Regional championships", "UDEAC Cup"),
+    "UFC": ("Regional championships", "UNIFAC Cup"),
+    "FEG": ("Regional championships", "Far Eastern Games"),
+    "EAG": ("Regional championships", "East Asian Games"),
+    "EAM": ("Regional championships", "East Asian Games"),
+    "DGC": ("Regional championships", "European International Cup"),
+    "BLK": ("Regional championships", "Balkan Cup"),
+    "BCE": (
+        "Regional championships",
+        "Balkan and Central European Championship",
+    ),
+    "BKG": (
+        "Regional championships",
+        "Balkan and Central European Championship",
+    ),
 }
 
 
@@ -340,28 +492,43 @@ def folded_competition(value: str) -> str:
 
 
 def tournament_identity(
+    tournament_code: str,
     competition: str,
     level: int,
 ) -> tuple[str, str] | None:
-    # Return a display category and stable tournament family name.
-    name = re.sub(r"\s+", " ", competition).strip()
+    # Return a category and family without merging unrelated events.
+    source_code = str(tournament_code or "").strip().upper()
+    name = re.sub(r"\s+", " ", str(competition or "")).strip()
     folded = folded_competition(name)
 
     if not name or level <= 0:
         return None
+
+    # Code-based assignments come first. Some events simultaneously
+    # served as qualifiers for another competition but were themselves
+    # real tournament matches.
+    exact = TOURNAMENT_CODE_FAMILIES.get(source_code)
+    if exact is not None:
+        return exact
 
     qualifier = any(token in folded for token in (
         "qualif",
         "prelim",
         "repechage",
     ))
+    if qualifier:
+        return None
+
     if "friendly" in folded or "warm-up" in folded:
         return None
 
+    # Only the OG source code is the Olympic Games finals.
+    if "olympic" in folded:
+        return None
+
+    # Conservative name fallbacks for supplemental or future codes.
     if folded in {"world cup", "fifa world cup"}:
         return "Global championships", "FIFA World Cup"
-    if "olympic" in folded:
-        return "Global championships", "Olympic Games"
     if "confederations cup" in folded or "king fahd cup" in folded:
         return "Global championships", "FIFA Confederations Cup"
     if "mundialito" in folded or "world champions gold cup" in folded:
@@ -379,44 +546,59 @@ def tournament_identity(
         or "artemio franchi" in folded
         or "intercontinental cup of nations" in folded
     ):
-        return "Global championships", "Intercontinental champions match"
+        return (
+            "Global championships",
+            "Intercontinental champions match",
+        )
 
-    if not qualifier and (
+    if (
         "european championship" in folded
         or folded in {"euro", "uefa euro"}
     ):
-        return "Continental championships", "UEFA European Championship"
-    if not qualifier and (
+        return (
+            "Continental championships",
+            "UEFA European Championship",
+        )
+    if (
         "copa america" in folded
         or "south american championship" in folded
     ):
         return "Continental championships", "Copa América"
-    if not qualifier and (
+    if (
         "africa cup of nations" in folded
         or "african cup of nations" in folded
         or folded == "african nations cup"
     ):
-        return "Continental championships", "Africa Cup of Nations"
+        return (
+            "Continental championships",
+            "Africa Cup of Nations",
+        )
     if "asian challenge cup" in folded:
         return "Continental championships", "AFC Challenge Cup"
     if "asian solidarity cup" in folded:
         return "Continental championships", "AFC Solidarity Cup"
-    if not qualifier and "asian cup" in folded:
+    if "asian cup" in folded:
         return "Continental championships", "AFC Asian Cup"
-    if not qualifier and (
-        "gold cup" in folded
+    if (
+        "concacaf gold cup" in folded
         or folded == "concacaf championship"
     ):
-        return "Continental championships", "CONCACAF Gold Cup"
-    if not qualifier and (
+        return (
+            "Continental championships",
+            "CONCACAF Gold Cup",
+        )
+    if (
         "ofc nations cup" in folded
         or "oceania nations cup" in folded
     ):
         return "Continental championships", "OFC Nations Cup"
     if "panamerican championship" in folded:
-        return "Continental championships", "Panamerican Championship"
+        return (
+            "Continental championships",
+            "Panamerican Championship",
+        )
 
-    if "nations league" in folded and not qualifier:
+    if "nations league" in folded:
         if "uefa" in folded or "europe" in folded:
             family = "UEFA Nations League"
         elif "concacaf" in folded:
@@ -427,38 +609,12 @@ def tournament_identity(
             family = name
         return "Nations leagues", family
 
-    if any(token in folded for token in (
-        "asean championship",
-        "tiger cup",
-        "southeast asian championship",
-    )):
-        return "Regional championships", "ASEAN Championship"
-    if "british championship" in folded or "british home" in folded:
-        return "Regional championships", "British Championship"
-    if "baltic cup" in folded:
-        return "Regional championships", "Baltic Cup"
-    if "nordic championship" in folded:
-        return "Regional championships", "Nordic Championship"
-    if "caribbean cup" in folded:
-        return "Regional championships", "Caribbean Cup"
-    if "caribbean championship" in folded:
-        return "Regional championships", "Caribbean Championship"
-    if "central american cup" in folded:
-        return "Regional championships", "Central American Cup"
-    if "uncaf nations cup" in folded:
-        return "Regional championships", "UNCAF Nations Cup"
-    if "east asian championship" in folded:
-        return "Regional championships", "East Asian Championship"
-    if "west asian championship" in folded:
-        return "Regional championships", "West Asian Championship"
-    if "south asian championship" in folded:
-        return "Regional championships", "South Asian Championship"
-
     regional_tokens = (
         "arab cup",
         "arab nations",
         "gulf cup",
         "asean",
+        "tiger cup",
         "aff championship",
         "saff",
         "eaff",
@@ -466,13 +622,13 @@ def tournament_identity(
         "cecafa",
         "cosafa",
         "unaf",
-        "caribbean cup",
+        "caribbean",
         "central american",
         "baltic cup",
         "british home",
         "british championship",
         "nordic championship",
-        "balkan cup",
+        "balkan",
         "pan american games",
         "pan-arab games",
         "panarab games",
@@ -487,11 +643,11 @@ def tournament_identity(
         "king's cup",
         "kings cup",
         "pestabola",
-        "south pacific games",
+        "south pacific",
         "indian ocean",
-        "east asian championship",
-        "west asian championship",
-        "south asian championship",
+        "east asian",
+        "west asian",
+        "south asian",
         "central asian",
         "west african",
         "east and central african",
@@ -503,21 +659,15 @@ def tournament_identity(
         "unifac",
         "cccf championship",
         "north american championship",
-        "un caf",
         "uncaf",
-        "caribbean championship",
+        "gold cup",
     )
     if any(token in folded for token in regional_tokens):
+        # Keep the canonical source name. Never turn a generic
+        # "Gold Cup" into the CONCACAF Gold Cup.
         return "Regional championships", name
 
-    if qualifier or "play-off" in folded or "playoff" in folded:
-        return None
-
-    # The source classifies competitive matches above level zero. Once
-    # qualifiers and friendlies are excluded, retain remaining named events so
-    # historical and less prominent tournaments stay discoverable.
     return "Other tournaments", name
-
 
 def tournament_family_id(name: str) -> str:
     folded = folded_competition(name)
@@ -610,11 +760,13 @@ def tournament_edition_label(
     return str(first.year)
 
 
+
 def build_tournament_catalog(matches: list[dict[str, Any]]) -> dict[str, Any]:
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
 
     for match in matches:
         identity = tournament_identity(
+            str(match.get("tc", "")),
             str(match.get("t", "")),
             int(match.get("level", 0)),
         )
@@ -626,11 +778,19 @@ def build_tournament_catalog(matches: list[dict[str, Any]]) -> dict[str, Any]:
     for (category, family), family_matches in grouped.items():
         clusters = split_tournament_editions(family, family_matches)
         same_year_counts: Counter[int] = Counter()
-        bounds: list[tuple[date, date, list[dict[str, Any]]]] = []
+        bounds: list[
+            tuple[date, date, list[dict[str, Any]]]
+        ] = []
 
         for cluster in clusters:
-            first = min(tolerant_tournament_date(row["date"]) for row in cluster)
-            last = max(tolerant_tournament_date(row["date"]) for row in cluster)
+            first = min(
+                tolerant_tournament_date(row["date"])
+                for row in cluster
+            )
+            last = max(
+                tolerant_tournament_date(row["date"])
+                for row in cluster
+            )
             bounds.append((first, last, cluster))
             if first.year == last.year:
                 same_year_counts[first.year] += 1
@@ -638,41 +798,114 @@ def build_tournament_catalog(matches: list[dict[str, Any]]) -> dict[str, Any]:
         editions = []
         family_id = tournament_family_id(family)
         for first, last, cluster in bounds:
-            participants = sorted({
-                code
-                for row in cluster
-                for code in (row["a"], row["b"])
-            })
+            ordered_cluster = sorted(
+                cluster,
+                key=lambda row: (
+                    tolerant_tournament_date(row["date"]),
+                    row["id"],
+                ),
+            )
+            participant_names: dict[str, str] = {}
+            for row in ordered_cluster:
+                for code, historical_name, canonical_name in (
+                    (
+                        row["a"],
+                        row.get("an"),
+                        row.get("ac"),
+                    ),
+                    (
+                        row["b"],
+                        row.get("bn"),
+                        row.get("bc"),
+                    ),
+                ):
+                    if code not in participant_names:
+                        participant_names[code] = str(
+                            historical_name
+                            or canonical_name
+                            or code
+                        )
+
+            participants = sorted(
+                (
+                    {
+                        "code": code,
+                        "nation": nation,
+                    }
+                    for code, nation in participant_names.items()
+                ),
+                key=lambda row: (
+                    row["nation"].casefold(),
+                    row["code"],
+                ),
+            )
+            participant_codes = sorted(participant_names)
             label = tournament_edition_label(
                 first,
                 last,
                 same_year_counts[first.year],
             )
-            if len(participants) < 3 and category == "Other tournaments":
+            if (
+                len(participant_codes) < 3
+                and category == "Other tournaments"
+            ):
                 continue
+
             editions.append({
-                "id": f"{family_id}-{first.isoformat()}-{last.isoformat()}",
+                "id": (
+                    f"{family_id}-"
+                    f"{first.isoformat()}-"
+                    f"{last.isoformat()}"
+                ),
                 "label": label,
                 "start": first.isoformat(),
                 "end": last.isoformat(),
-                "before": (first - timedelta(days=1)).isoformat(),
+                "before": (
+                    first - timedelta(days=1)
+                ).isoformat(),
                 "after": last.isoformat(),
-                "teams": participants,
+                "teams": participant_codes,
+                "participants": participants,
                 "matches": len(cluster),
+                "source_codes": sorted({
+                    str(row.get("tc", "")).strip().upper()
+                    for row in cluster
+                    if str(row.get("tc", "")).strip()
+                }),
+                "source_competitions": sorted({
+                    str(row.get("t", "")).strip()
+                    for row in cluster
+                    if str(row.get("t", "")).strip()
+                }),
             })
 
-        editions.sort(key=lambda row: (row["after"], row["start"]), reverse=True)
+        editions.sort(
+            key=lambda row: (
+                row["after"],
+                row["start"],
+            ),
+            reverse=True,
+        )
         if not editions:
             continue
+
         families.append({
             "id": family_id,
             "name": family,
             "category": category,
+            "source_codes": sorted({
+                str(row.get("tc", "")).strip().upper()
+                for row in family_matches
+                if str(row.get("tc", "")).strip()
+            }),
             "editions": editions,
         })
 
     families.sort(key=lambda row: (
-        TOURNAMENT_CATEGORY_ORDER.get(row["category"], 99),
+        TOURNAMENT_CATEGORY_ORDER.get(
+            row["category"],
+            99,
+        ),
         row["name"].casefold(),
     ))
     categories = [
@@ -681,13 +914,15 @@ def build_tournament_catalog(matches: list[dict[str, Any]]) -> dict[str, Any]:
             TOURNAMENT_CATEGORY_ORDER.items(),
             key=lambda item: item[1],
         )
-        if any(family["category"] == category for family in families)
+        if any(
+            family["category"] == category
+            for family in families
+        )
     ]
     return {
         "categories": categories,
         "families": families,
     }
-
 
 def build_historical_rankings(data: Path, output: Any) -> None:
     """Write independently loadable end-of-day ranking events for each year."""
