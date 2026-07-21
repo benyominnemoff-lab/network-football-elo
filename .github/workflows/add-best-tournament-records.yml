@@ -308,19 +308,40 @@ jobs:
               "Best tournaments record explanation",
           )
 
-          app = replace_once(
-              app,
-              '''            : view === "matches"
-                          ? matchRecordTable(visible)
-                          : upsetTable(visible);
-          ''',
-              '''            : view === "matches"
-                          ? matchRecordTable(visible)
-                          : view === "upsets"
-                            ? upsetTable(visible)
-                            : bestTournamentTable(visible);
-          ''',
-              "Best tournaments table selection",
+          table_start = (
+              '      document.getElementById("record-table").innerHTML '
+              '= view === "peaks"\n'
+          )
+          table_end = (
+              '      document.getElementById("record-count").textContent'
+          )
+          table_start_position = app.find(table_start)
+          table_end_position = app.find(
+              table_end,
+              table_start_position,
+          )
+          if table_start_position < 0 or table_end_position < 0:
+              raise RuntimeError(
+                  "Could not locate the Records table-render assignment"
+              )
+
+          new_table_selection = '''      document.getElementById("record-table").innerHTML = view === "peaks"
+                ? peakTable(visible)
+                : view === "numberones"
+                  ? numberOneTable(visible)
+                  : view === "numberonesummary"
+                    ? numberOneSummaryTable(visible)
+                    : view === "matches"
+                      ? matchRecordTable(visible)
+                      : view === "upsets"
+                        ? upsetTable(visible)
+                        : bestTournamentTable(visible);
+          '''
+
+          app = (
+              app[:table_start_position]
+              + new_table_selection
+              + app[table_end_position:]
           )
 
           # Remove Adjusted estimate only as a sorting choice. The informative
