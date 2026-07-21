@@ -659,8 +659,8 @@ class StaticBuildTests(unittest.TestCase):
         self.assertIn('maxlength="10"', javascript)
         self.assertIn("Day must be between 01 and 31.", javascript)
         self.assertIn("Month must be between 01 and 12.", javascript)
-        after = '`<option value="${cup.after}">After ${cup.year} World Cup</option>`'
-        before = '`<option value="${cup.before}">Before ${cup.year} World Cup</option>`'
+        after = '`<option value="${cup.year}-after">After ${cup.year} World Cup</option>`'
+        before = '`<option value="${cup.year}-before">Before ${cup.year} World Cup</option>`'
         self.assertLess(javascript.index(after), javascript.index(before))
 
     def test_public_metadata_and_discovery_files(self) -> None:
