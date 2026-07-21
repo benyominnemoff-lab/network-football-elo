@@ -761,6 +761,7 @@ class StaticBuildTests(unittest.TestCase):
         )
 
 
+
     def test_tournament_catalog_codes_participants_and_sorting(self) -> None:
         catalog = json.loads(
             (self.data / "tournaments" / "index.json").read_text(
@@ -788,6 +789,20 @@ class StaticBuildTests(unittest.TestCase):
                 self.assertTrue(
                     all(item["nation"] for item in participants)
                 )
+                rating_changes = edition.get(
+                    "rating_changes",
+                    [],
+                )
+                self.assertEqual(
+                    {item["code"] for item in rating_changes},
+                    set(edition["teams"]),
+                )
+                self.assertTrue(
+                    all(
+                        item["matches"] > 0
+                        for item in rating_changes
+                    )
+                )
 
         self.assertEqual(
             set(by_name["Olympic Games"]["source_codes"]),
@@ -811,32 +826,46 @@ class StaticBuildTests(unittest.TestCase):
             if code in owners:
                 self.assertEqual(owners[code], {family_name})
 
-        gold_codes = set(
-            by_name["CONCACAF Gold Cup"]["source_codes"]
-        )
-        self.assertFalse(
-            gold_codes & {"BGC", "NGC", "PRG"}
-        )
-
-        pure_qualifier_codes = {
+        excluded_qualifier_codes = {
             "OQ", "GCQ", "CHQ", "CHT", "TGQ", "AEQ",
             "SEQ", "SET", "CLQ", "NLQ", "UNQ", "UNT",
             "EAQ", "EAT", "ARQ", "AQT",
+            "FCQ", "FBQ", "NUQ",
         }
-        self.assertFalse(pure_qualifier_codes & owners.keys())
+        self.assertFalse(
+            excluded_qualifier_codes & owners.keys()
+        )
+
+        gold_cup = by_name["CONCACAF Gold Cup"]
+        gold_codes = set(gold_cup["source_codes"])
+        self.assertFalse(
+            gold_codes
+            & {"BGC", "NGC", "PRG", "FCQ", "FBQ", "NUQ"}
+        )
+        self.assertNotIn(
+            "2006–07",
+            {
+                edition["label"]
+                for edition in gold_cup["editions"]
+            },
+        )
 
         javascript = (
             ROOT / "public" / "assets" / "app.js"
         ).read_text(encoding="utf-8")
         self.assertIn(
             '<option value="rating">Rating</option>'
-            '<option value="rating_gain">Rating gain</option>'
+            '<option value="rating_change">Rating change</option>'
             '<option value="name">Name</option>',
             javascript,
         )
+        self.assertNotIn(
+            '<option value="rating_gain">Rating gain</option>',
+            javascript,
+        )
+        self.assertIn("attributedChanges", javascript)
         self.assertIn(
-            '<option value="rating">Rating</option>'
-            '<option value="name">Name</option>',
+            "excluding recalibration and unrelated results",
             javascript,
         )
         self.assertIn("editionParticipants", javascript)
@@ -849,6 +878,7 @@ class StaticBuildTests(unittest.TestCase):
     def test_best_tournament_records_and_rating_sort_options(self) -> None:
         records = self.summary.get("best_tournaments", [])
         self.assertTrue(records)
+        self.assertLessEqual(len(records), 500)
         self.assertEqual(
             records,
             sorted(
@@ -859,17 +889,38 @@ class StaticBuildTests(unittest.TestCase):
                     row["tournament"],
                     row["nation"],
                 ),
-            ),
+            )[:500],
         )
         self.assertTrue(
             all(row["rating_gain"] > 0 for row in records)
         )
+
+        catalog = json.loads(
+            (self.data / "tournaments" / "index.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        attributed = {
+            (
+                family["id"],
+                edition["id"],
+                change["code"],
+            ): change["change"]
+            for family in catalog["families"]
+            for edition in family["editions"]
+            for change in edition.get("rating_changes", [])
+        }
         self.assertTrue(
             all(
                 abs(
-                    row["after_rating"]
-                    - row["before_rating"]
-                    - row["rating_gain"]
+                    row["rating_gain"]
+                    - attributed[
+                        (
+                            row["tournament_id"],
+                            row["edition_id"],
+                            row["code"],
+                        )
+                    ]
                 ) < 1e-7
                 for row in records
             )
@@ -879,6 +930,7 @@ class StaticBuildTests(unittest.TestCase):
                 row["tournament_id"]
                 and row["edition_id"]
                 and row["code"]
+                and row["tournament_matches"] > 0
                 for row in records
             )
         )
@@ -895,16 +947,25 @@ class StaticBuildTests(unittest.TestCase):
             javascript,
         )
         self.assertIn(
-            "summary.best_tournaments",
+            "(summary.best_tournaments || []).slice(0, 500)",
+            javascript,
+        )
+        self.assertIn(
+            "edition's own matches",
             javascript,
         )
         self.assertNotIn(
             '<option value="mean">Adjusted estimate</option>',
             javascript,
         )
-        self.assertNotIn(
-            '["rating", "mean", "matches", "name"]',
-            javascript,
+
+        builder = (
+            ROOT / "scripts" / "build_site.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("return records[:500]", builder)
+        self.assertIn(
+            '"rating_changes": attributed_rating_changes',
+            builder,
         )
 
     def test_public_metadata_and_discovery_files(self) -> None:

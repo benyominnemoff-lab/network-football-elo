@@ -482,6 +482,35 @@ TOURNAMENT_CODE_FAMILIES: dict[str, tuple[str, str]] = {
 }
 
 
+# These codes describe matches that were simultaneously part of a
+# genuine standalone tournament and a qualifier for another event.
+# They remain in the standalone tournament. Other qualifier-labelled
+# codes are excluded before family assignment.
+TOURNAMENT_HYBRID_EVENT_CODES = {
+    "CFC",  # CONCACAF Cup and Confederations Cup qualifier
+    "WQC",  # CONCACAF Championship and World Cup qualifier
+    "WQO",  # OFC Nations Cup and World Cup qualifier
+    "WQL",  # Baltic Cup and World Cup qualifier
+    "WQB",  # British Championship and World Cup qualifier
+    "WQD",  # Nordic Championship and World Cup qualifier
+    "ON",   # Nordic Championship and Olympic qualifier
+    "EQB",  # British Championship and Euro qualifier
+    "EQN",  # Nordic Championship and Euro qualifier
+    "SQC",  # AFC Challenge Cup and Asian Cup qualifier
+    "NQC",  # Central American Cup and CONCACAF qualifier
+    "NQU",  # UNCAF Nations Cup and CONCACAF qualifier
+    "FQC",  # Caribbean Cup and CONCACAF qualifier
+    "FQB",  # Caribbean Championship and CONCACAF qualifier
+    "FQP",  # Caribbean Championship playoff and qualifier
+    "WOS",  # South Pacific Games and WC/OFC qualifiers
+    "OQG",  # South Pacific Games and OFC qualifier
+    "OCM",  # Melanesian Cup and OFC qualifier
+    "OCP",  # Polynesian Cup and OFC qualifier
+    "AQC",  # Central African Cup and African Games qualifier
+    "ACG",  # Central African Games and African Games qualifier
+    "AQW",  # West African Cup and African Games qualifier
+}
+
 def folded_competition(value: str) -> str:
     normalised = unicodedata.normalize("NFKD", value)
     ascii_text = "".join(
@@ -504,20 +533,24 @@ def tournament_identity(
     if not name or level <= 0:
         return None
 
-    # Code-based assignments come first. Some events simultaneously
-    # served as qualifiers for another competition but were themselves
-    # real tournament matches.
-    exact = TOURNAMENT_CODE_FAMILIES.get(source_code)
-    if exact is not None:
-        return exact
 
     qualifier = any(token in folded for token in (
         "qualif",
         "prelim",
         "repechage",
     ))
-    if qualifier:
+    if (
+        qualifier
+        and source_code not in TOURNAMENT_HYBRID_EVENT_CODES
+    ):
         return None
+
+    # Assign an exact family only after qualifier-only rows have been
+    # rejected. This prevents codes such as FCQ, FBQ and NUQ from
+    # extending a CONCACAF Gold Cup edition into its qualifying cycle.
+    exact = TOURNAMENT_CODE_FAMILIES.get(source_code)
+    if exact is not None:
+        return exact
 
     if "friendly" in folded or "warm-up" in folded:
         return None
@@ -840,6 +873,41 @@ def build_tournament_catalog(matches: list[dict[str, Any]]) -> dict[str, Any]:
                 ),
             )
             participant_codes = sorted(participant_names)
+
+            attributed_totals: dict[str, float] = {}
+            attributed_matches: Counter[str] = Counter()
+            for row in ordered_cluster:
+                for code, field in (
+                    (row["a"], "impact_a"),
+                    (row["b"], "impact_b"),
+                ):
+                    value = row.get(field)
+                    if value is None:
+                        continue
+                    attributed_totals[code] = (
+                        attributed_totals.get(code, 0.0)
+                        + float(value)
+                    )
+                    attributed_matches[code] += 1
+
+            attributed_rating_changes = sorted(
+                (
+                    {
+                        "code": code,
+                        "change": change,
+                        "matches": attributed_matches[code],
+                    }
+                    for code, change in attributed_totals.items()
+                ),
+                key=lambda row: (
+                    participant_names.get(
+                        row["code"],
+                        row["code"],
+                    ).casefold(),
+                    row["code"],
+                ),
+            )
+
             label = tournament_edition_label(
                 first,
                 last,
@@ -866,6 +934,7 @@ def build_tournament_catalog(matches: list[dict[str, Any]]) -> dict[str, Any]:
                 "after": last.isoformat(),
                 "teams": participant_codes,
                 "participants": participants,
+                "rating_changes": attributed_rating_changes,
                 "matches": len(cluster),
                 "source_codes": sorted({
                     str(row.get("tc", "")).strip().upper()
@@ -947,11 +1016,14 @@ def tournament_rating_at_snapshot(
     return point
 
 
+
 def build_best_tournament_records(
     tournament_catalog: dict[str, Any],
     team_pages: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    # Rank positive rating gains across complete tournament editions.
+    # Rank positive changes attributed only to an edition's matches.
+    # Snapshot-to-snapshot differences are intentionally not used:
+    # they can contain annual recalibration and unrelated results.
     records: list[dict[str, Any]] = []
 
     for family in tournament_catalog["families"]:
@@ -960,8 +1032,20 @@ def build_best_tournament_records(
                 participant["code"]: participant["nation"]
                 for participant in edition.get("participants", [])
             }
+            attributed = {
+                row["code"]: row
+                for row in edition.get("rating_changes", [])
+            }
 
             for code in edition["teams"]:
+                change_row = attributed.get(code)
+                if change_row is None:
+                    continue
+
+                gain = float(change_row["change"])
+                if gain <= 0:
+                    continue
+
                 page = team_pages.get(code)
                 if page is None:
                     continue
@@ -976,10 +1060,6 @@ def build_best_tournament_records(
                     edition["after"],
                 )
                 if before is None or after is None:
-                    continue
-
-                gain = after["rating"] - before["rating"]
-                if gain <= 0:
                     continue
 
                 records.append({
@@ -1002,6 +1082,9 @@ def build_best_tournament_records(
                     "before_rating": before["rating"],
                     "after_rating": after["rating"],
                     "rating_gain": gain,
+                    "tournament_matches": int(
+                        change_row.get("matches", 0)
+                    ),
                 })
 
     records.sort(key=lambda row: (
@@ -1010,7 +1093,7 @@ def build_best_tournament_records(
         row["tournament"],
         row["nation"],
     ))
-    return records
+    return records[:500]
 
 def build_historical_rankings(data: Path, output: Any) -> None:
     """Write independently loadable end-of-day ranking events for each year."""

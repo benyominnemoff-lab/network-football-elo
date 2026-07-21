@@ -569,7 +569,7 @@
       return `<span class="tournament-change ${direction}" title="${label} during this tournament">${arrow} ${places}</span>`;
     }
     const signed = `${change >= 0 ? "+" : ""}${rating(change)}`;
-    return `<span class="tournament-change ${direction}" title="Rating movement during this tournament: ${signed} points">${arrow} ${signed}</span>`;
+    return `<span class="tournament-change ${direction}" title="Rating change attributed to this tournament\'s matches: ${signed} points">${arrow} ${signed}</span>`;
   }
 
   function tournamentRankingsTable(items, selectedDate, showMovement) {
@@ -657,7 +657,10 @@
     const summaryNames = new Map(
       summary.teams.map((team) => [team.code, team.nation]),
     );
-    const requestedSort = route.query.get("sort") || "rating";
+    const requestedSortValue = route.query.get("sort");
+        const requestedSort = requestedSortValue === "rating_gain"
+          ? "rating_change"
+          : requestedSortValue || "rating";
     familySelect.value = selectedFamily.id;
     viewSelect.value = selectedView;
     let teams = [];
@@ -674,10 +677,10 @@
 
     const syncSortOptions = (preferred = sortSelect.value || requestedSort) => {
       sortSelect.innerHTML = selectedView === "after"
-        ? `<option value="rating">Rating</option><option value="rating_gain">Rating gain</option><option value="name">Name</option>`
+        ? `<option value="rating">Rating</option><option value="rating_change">Rating change</option><option value="name">Name</option>`
         : `<option value="rating">Rating</option><option value="name">Name</option>`;
       const allowed = selectedView === "after"
-        ? new Set(["rating", "rating_gain", "name"])
+        ? new Set(["rating", "rating_change", "name"])
         : new Set(["rating", "name"]);
       sortSelect.value = allowed.has(preferred)
         ? preferred
@@ -719,7 +722,7 @@
         if (sort === "name") {
           return a.nation.localeCompare(b.nation);
         }
-        if (sort === "rating_gain") {
+        if (sort === "rating_change") {
           return (
             descendingValue(b, "tournament_rating_change")
             - descendingValue(a, "tournament_rating_change")
@@ -797,6 +800,11 @@
         const beforeByCode = new Map(
           beforeRanked.map((team) => [team.code, team]),
         );
+        const attributedChanges = new Map(
+          (selectedEdition.rating_changes || []).map(
+            (item) => [item.code, Number(item.change)],
+          ),
+        );
         teams = teams.map((team) => {
           const before = beforeByCode.get(team.code);
           const comparable = before && team.rating != null;
@@ -807,9 +815,11 @@
                 ? before.rank - team.rank
                 : null
             ),
-            tournament_rating_change: comparable
-              ? team.rating - before.rating
-              : null,
+            tournament_rating_change: (
+              comparable && attributedChanges.has(team.code)
+                ? attributedChanges.get(team.code)
+                : null
+            ),
           };
         });
       }
@@ -823,7 +833,7 @@
         `${selectedFamily.name} · ${selectedEdition.label}`;
       document.getElementById("tournament-description").textContent =
         selectedView === "after"
-          ? `All ${number(teams.length)} participants are shown, including teams without a published rating. ${number(rankedCount)} had a published rating immediately after the tournament. Rank and rating movement compare the full global tables before and after the event.`
+          ? `All ${number(teams.length)} participants are shown, including teams without a published rating. ${number(rankedCount)} had a published rating immediately after the tournament. Rank movement compares the full global tables before and after the event. Rating change sums only this edition's match contributions, excluding recalibration and unrelated results.`
           : `All ${number(teams.length)} participants are shown, including teams without a published rating. ${number(rankedCount)} had a published rating immediately before the tournament.`;
       setTitle(
         `${selectedFamily.name} ${selectedEdition.label}`,
@@ -1072,7 +1082,7 @@
         numberonesummary: summary.number_one_summary || [],
         matches: summary.top_matches,
         upsets: summary.upsets,
-        tournaments: summary.best_tournaments || [],
+        tournaments: (summary.best_tournaments || []).slice(0, 500),
       };
       const filterBar = document.getElementById("number-one-filters");
       const filtering = view === "numberones";
@@ -1120,7 +1130,7 @@
             ? `<strong>Q</strong><div><b>Every eligible match instance is ranked.</b> Q is the two breadth-adjusted means minus 1.645 times their joint standard error; repeat pairings are not deduplicated.</div>`
             : view === "upsets"
               ? `<strong>±</strong><div><b>Decisive results ranked by rating movement.</b> Upset points are the average of the winner's rating gain and the loser's rating loss. The two values can differ because this network-adjusted model is not strictly zero-sum.</div>`
-              : `<strong>▲</strong><div><b>Largest positive rating gains over one tournament edition.</b> Each row compares the same published before-and-after snapshots used on the Tournaments page. Teams without a comparable published rating at both snapshots are excluded.</div>`;
+              : `<strong>▲</strong><div><b>Largest positive rating gains over one tournament edition.</b> Rating gain is the sum of the model contributions from the edition's own matches, excluding annual recalibration and unrelated results. Teams without a comparable published rating at both snapshots are excluded, and only the top 500 are retained.</div>`;
       document.getElementById("record-table").innerHTML = view === "peaks"
       ? peakTable(visible)
       : view === "numberones"
