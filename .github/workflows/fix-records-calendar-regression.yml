@@ -1,0 +1,190 @@
+name: Fix Records calendar regression
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix-records-calendar-regression
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    name: Restore Records test contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install reproducible runtime
+        run: python -m pip install --requirement requirements.txt
+
+      - name: Restore calendar-bound statements
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python <<'PY'
+          from pathlib import Path
+
+
+          path = Path("public/assets/app.js")
+          javascript = path.read_text(encoding="utf-8")
+
+          old = '''      document.getElementById(
+                "number-one-from-calendar",
+              ).max = to || summary.meta.results_through;
+              document.getElementById(
+                "number-one-to-calendar",
+              ).min = from || "1872-01-01";'''
+
+          new = '''      document.getElementById("number-one-from-calendar").max = to || summary.meta.results_through;
+              document.getElementById("number-one-to-calendar").min = from || "1872-01-01";'''
+
+          if old in javascript:
+              javascript = javascript.replace(old, new, 1)
+          elif new in javascript:
+              print("Calendar-bound statements are already restored.")
+          else:
+              raise RuntimeError(
+                  "Could not find either the multiline or restored "
+                  "calendar-bound statements."
+              )
+
+          required = [
+              'number-one-from-calendar").max',
+              'number-one-to-calendar").min',
+              'id="best-tournament-filters"',
+              'id="best-tournament-team"',
+              'id="best-tournament-competition"',
+              'const tournamentFiltering = view === "tournaments";',
+              "row.code !== tournamentTeam",
+              ".includes(competitionQuery)",
+              "team: tournamentFiltering",
+              "competition: tournamentFiltering",
+              "Rating gain adds up the published rating movement",
+              "Ranks always refer to the full world ranking",
+              "Rank change compares each team's place",
+          ]
+          missing = [
+              marker for marker in required
+              if marker not in javascript
+          ]
+          if missing:
+              raise RuntimeError(
+                  "JavaScript validation failed; missing: "
+                  + ", ".join(missing)
+              )
+
+          if (
+              "The tournament-only before→after pair therefore "
+              "matches the gain exactly"
+              in javascript
+          ):
+              raise RuntimeError(
+                  "The superfluous Best tournaments sentence remains."
+              )
+
+          path.write_text(
+              javascript.rstrip() + "\n",
+              encoding="utf-8",
+          )
+
+          print(
+              "Restored the Records calendar-bound statements without "
+              "changing filter behavior."
+          )
+          PY
+
+      - name: Validate source syntax
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/build_site.py tests/test_build.py
+          node --check public/assets/app.js
+
+      - name: Build static site
+        run: |
+          set -euo pipefail
+          python scripts/build_site.py \
+            --source source \
+            --config config \
+            --output public
+
+      - name: Run complete verification
+        run: |
+          set -euo pipefail
+          python -m unittest discover \
+            --start-directory tests \
+            --verbose
+          node --check public/assets/app.js
+
+      - name: Preserve source asset only
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cp public/assets/app.js /tmp/nfelo-app.js
+          git restore --worktree -- public
+          git clean -fd -- public
+          cp /tmp/nfelo-app.js public/assets/app.js
+
+      - name: Check final patch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check public/assets/app.js
+          git diff --check
+
+          changed="$(git diff --name-only)"
+          if [ "$changed" != "public/assets/app.js" ]; then
+            echo "Unexpected changed files:"
+            printf '%s\n' "$changed"
+            exit 1
+          fi
+
+          grep -F 'number-one-from-calendar").max' \
+            public/assets/app.js
+          grep -F 'number-one-to-calendar").min' \
+            public/assets/app.js
+
+      - name: Commit and push
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- public/assets/app.js; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "The regression is already fixed."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add public/assets/app.js
+          git commit -m "Fix Records calendar regression"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Confirm automatic deployment trigger
+        if: steps.commit.outputs.changed == 'true'
+        run: |
+          echo "The push to main automatically triggers pages.yml."
+          echo "No second workflow_dispatch is sent."
