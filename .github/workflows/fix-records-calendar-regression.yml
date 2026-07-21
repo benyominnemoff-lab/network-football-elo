@@ -39,34 +39,62 @@ jobs:
 
           python <<'PY'
           from pathlib import Path
+          import re
 
 
           path = Path("public/assets/app.js")
           javascript = path.read_text(encoding="utf-8")
 
-          old = '''      document.getElementById(
-                "number-one-from-calendar",
-              ).max = to || summary.meta.results_through;
-              document.getElementById(
-                "number-one-to-calendar",
-              ).min = from || "1872-01-01";'''
+          restored_from = (
+              'document.getElementById("number-one-from-calendar").max'
+          )
+          restored_to = (
+              'document.getElementById("number-one-to-calendar").min'
+          )
 
-          new = '''      document.getElementById("number-one-from-calendar").max = to || summary.meta.results_through;
-              document.getElementById("number-one-to-calendar").min = from || "1872-01-01";'''
-
-          if old in javascript:
-              javascript = javascript.replace(old, new, 1)
-          elif new in javascript:
+          if restored_from in javascript and restored_to in javascript:
               print("Calendar-bound statements are already restored.")
           else:
-              raise RuntimeError(
-                  "Could not find either the multiline or restored "
-                  "calendar-bound statements."
+              pattern = re.compile(
+                  r'(?P<indent>^[ \t]*)'
+                  r'document\.getElementById\(\s*'
+                  r'"number-one-from-calendar"\s*,?\s*'
+                  r'\)\.max\s*=\s*to\s*\|\|\s*'
+                  r'summary\.meta\.results_through;'
+                  r'[ \t]*\n'
+                  r'(?P=indent)'
+                  r'document\.getElementById\(\s*'
+                  r'"number-one-to-calendar"\s*,?\s*'
+                  r'\)\.min\s*=\s*from\s*\|\|\s*'
+                  r'"1872-01-01";',
+                  flags=re.MULTILINE,
               )
 
+              def replacement(match: re.Match[str]) -> str:
+                  indent = match.group("indent")
+                  return (
+                      f'{indent}document.getElementById('
+                      '"number-one-from-calendar").max = '
+                      'to || summary.meta.results_through;\n'
+                      f'{indent}document.getElementById('
+                      '"number-one-to-calendar").min = '
+                      'from || "1872-01-01";'
+                  )
+
+              javascript, replacements = pattern.subn(
+                  replacement,
+                  javascript,
+                  count=1,
+              )
+              if replacements != 1:
+                  raise RuntimeError(
+                      "Expected exactly one multiline calendar-bound "
+                      f"statement pair; replaced {replacements}."
+                  )
+
           required = [
-              'number-one-from-calendar").max',
-              'number-one-to-calendar").min',
+              restored_from,
+              restored_to,
               'id="best-tournament-filters"',
               'id="best-tournament-team"',
               'id="best-tournament-competition"',
@@ -80,7 +108,8 @@ jobs:
               "Rank change compares each team's place",
           ]
           missing = [
-              marker for marker in required
+              marker
+              for marker in required
               if marker not in javascript
           ]
           if missing:
@@ -104,8 +133,8 @@ jobs:
           )
 
           print(
-              "Restored the Records calendar-bound statements without "
-              "changing filter behavior."
+              "Restored the calendar-bound statements and retained "
+              "the tournament filters."
           )
           PY
 
@@ -187,4 +216,4 @@ jobs:
         if: steps.commit.outputs.changed == 'true'
         run: |
           echo "The push to main automatically triggers pages.yml."
-          echo "No second workflow_dispatch is sent."
+          echo "No separate workflow_dispatch is sent."
