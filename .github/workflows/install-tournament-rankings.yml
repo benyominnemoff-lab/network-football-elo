@@ -932,8 +932,8 @@ jobs:
               text = STYLE_PATH.read_text(encoding="utf-8")
               marker = "/* Tournament snapshots */"
               if marker not in text:
-                  text = text.rstrip() + STYLE_BLOCK + "\n"
-              STYLE_PATH.write_text(text, encoding="utf-8")
+                  text = text.rstrip() + "\n\n" + STYLE_BLOCK.strip()
+              STYLE_PATH.write_text(text.rstrip() + "\n", encoding="utf-8")
               print("Added responsive tournament controls and cell movement styles.")
 
 
@@ -1143,6 +1143,13 @@ jobs:
           patch_html()
           patch_styles()
           patch_tests()
+
+          # Keep every edited text file at exactly one trailing newline so
+          # git diff --check does not reject a blank line at end-of-file.
+          for path in (BUILD_PATH, APP_PATH, HTML_PATH, STYLE_PATH, TEST_PATH):
+              content = path.read_text(encoding="utf-8")
+              path.write_text(content.rstrip() + "\n", encoding="utf-8")
+
           validate_installation()
           PY
 
