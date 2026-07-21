@@ -643,7 +643,7 @@
       </div>
       <div class="record-note"><strong id="tournament-count">—</strong><div><b id="tournament-label">Participants</b><br><span id="tournament-description">Choose a tournament edition.</span></div></div>
       <div class="toolbar compact-toolbar">
-        <div class="field field-grow"><label for="tournament-search">Find a team</label><input id="tournament-search" type="search" placeholder="Brazil, Thailand, Morocco…" value="${escapeHTML(route.query.get("q") || "")}"></div>
+        <div class="field field-grow"><label for="tournament-search">Find a team</label><input id="tournament-search" type="search" placeholder="Search tournament teams…" value="${escapeHTML(route.query.get("q") || "")}"></div>
         <div class="field"><label for="tournament-sort">Sort</label><select id="tournament-sort"></select></div>
       </div>
       <div id="tournament-table"></div>
@@ -752,6 +752,50 @@
       }));
     };
 
+    const updateTournamentSearchPlaceholder = (participants) => {
+          const names = [
+            ...new Set(
+              participants
+                .map(
+                  (participant) => (
+                    participant.nation
+                    || summaryNames.get(participant.code)
+                    || participant.code
+                  ),
+                )
+                .filter(Boolean),
+            ),
+          ];
+
+          for (
+            let index = names.length - 1;
+            index > 0;
+            index -= 1
+          ) {
+            const swapIndex = Math.floor(
+              Math.random() * (index + 1),
+            );
+            [names[index], names[swapIndex]] = [
+              names[swapIndex],
+              names[index],
+            ];
+          }
+
+          const examples = names.slice(
+            0,
+            Math.min(3, names.length),
+          );
+          const suffix = examples.length < names.length
+            ? "…"
+            : "";
+
+          document.getElementById(
+            "tournament-search",
+          ).placeholder = examples.length
+            ? `${examples.join(", ")}${suffix}`
+            : "Search tournament teams…";
+        };
+
     const loadSelection = async () => {
       syncSortOptions();
       saveTournamentRoute();
@@ -766,6 +810,7 @@
         ranked.map((team) => [team.code, team]),
       );
       const participants = editionParticipants();
+      updateTournamentSearchPlaceholder(participants);
       teams = participants.map((participant) => {
         const rankedTeam = rankedByCode.get(participant.code);
         if (rankedTeam) {
@@ -836,17 +881,23 @@
         });
       }
 
-      const rankedCount = teams.filter(
-        (team) => team.rating != null,
-      ).length;
-      document.getElementById("tournament-count").textContent =
-        number(teams.length);
-      document.getElementById("tournament-label").textContent =
-        `${selectedFamily.name} · ${selectedEdition.label}`;
-      document.getElementById("tournament-description").textContent =
-        selectedView === "after"
-          ? `All ${number(teams.length)} participants are shown, including teams without a published rating. ${number(rankedCount)} had a published rating after the tournament. Rank change compares each team's place in the full world ranking. Rating change includes only matches from this edition, excluding recalibration and unrelated results.`
-          : `All ${number(teams.length)} participants are shown, including teams without a published rating. ${number(rankedCount)} had a published rating before the tournament.`;
+      // Tournament edition summary
+          const rankedCount = teams.filter(
+            (team) => team.rating != null,
+          ).length;
+          const unratedCount = teams.length - rankedCount;
+          const coverageNote = unratedCount > 0
+            ? ` All participants are shown, including teams without a published rating; ${number(unratedCount)} ${unratedCount === 1 ? "team was" : "teams were"} unrated ${selectedView === "after" ? "after" : "before"} the tournament.`
+            : "";
+
+          document.getElementById("tournament-count").textContent =
+            number(teams.length);
+          document.getElementById("tournament-label").textContent =
+            `${selectedFamily.name} · ${selectedEdition.label}`;
+          document.getElementById("tournament-description").textContent =
+            selectedView === "after"
+              ? `The tournament ended on ${validDate(selectedEdition.end)}. Rank change compares each team's place in the full world ranking. Rating change includes only matches from this edition, excluding recalibration and unrelated results.${coverageNote}`
+              : `The tournament ended on ${validDate(selectedEdition.end)}. This snapshot shows each participant immediately before the tournament.${coverageNote}`;
       setTitle(
         `${selectedFamily.name} ${selectedEdition.label}`,
       );
