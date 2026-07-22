@@ -94,18 +94,32 @@ jobs:
                   1,
               )
 
-          tests = tests.replace(
+          old_number_one_filter_assertions = (
+              (
+                  "        self.assertIn("
+                  "'const filtering = view === "
+                  '"numberones";'
+                  "', javascript)\n"
+              ),
               (
                   '        self.assertIn('
                   '"const filtering = view === '
                   '\\"numberones\\";", javascript)\n'
               ),
-              (
-                  '        self.assertIn('
-                  '"numberOneFilters.hidden = '
-                  'view !== \\"numberones\\";", javascript)\n'
-              ),
           )
+          new_number_one_filter_assertion = (
+              "        self.assertIn("
+              "'numberOneFilters.hidden = view !== "
+              '"numberones";'
+              "', javascript)\n"
+          )
+          for old_assertion in old_number_one_filter_assertions:
+              if old_assertion in tests:
+                  tests = tests.replace(
+                      old_assertion,
+                      new_number_one_filter_assertion,
+                      1,
+                  )
 
           old_record_contract = (
               '            "Explore nation peaks, No. 1 chronology '
@@ -1413,7 +1427,7 @@ jobs:
               'self.assertIn("Soviet Union", names)',
               'self.assertNotIn("USSR", names)',
               '<option value="rank_change">Rank change</option>',
-              'numberOneFilters.hidden = view !== \"numberones\";',
+              'numberOneFilters.hidden = view !== "numberones";',
               'id="record-list-team"',
               "peakRecordLabel",
           )
@@ -1433,6 +1447,9 @@ jobs:
               'id="peak-team-search"',
               'id="record-list-team"',
               'id="record-list-competition"',
+              'peakFilters.hidden = view !== "peaks";',
+              'numberOneFilters.hidden = view !== "numberones";',
+              "listFilters.hidden = !pairViews.has(view);",
               "function defaultMajorTournamentFamily",
               "defaultMajorTournamentFamily(families)",
               "peakRecordLabel",
@@ -1606,6 +1623,9 @@ jobs:
             scripts/build_site.py
           grep -F \
             'test_record_filters_labels_and_major_tournament_default' \
+            tests/test_build.py
+          grep -F \
+            'numberOneFilters.hidden = view !== "numberones";' \
             tests/test_build.py
           grep -F \
             'self.assertIn("Soviet Union", names)' \
