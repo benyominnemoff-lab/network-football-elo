@@ -48,7 +48,6 @@ jobs:
           BUILD_PATH = Path("scripts/build_site.py")
           README_PATH = Path("README.md")
           TEST_PATH = Path("tests/test_build.py")
-          PAGES_PATH = Path(".github/workflows/pages.yml")
           AUDIT_PATH = Path("scripts/audit_site_consistency.py")
 
           app = APP_PATH.read_text(encoding="utf-8")
@@ -57,7 +56,6 @@ jobs:
           build = BUILD_PATH.read_text(encoding="utf-8")
           readme = README_PATH.read_text(encoding="utf-8")
           tests = TEST_PATH.read_text(encoding="utf-8")
-          pages = PAGES_PATH.read_text(encoding="utf-8")
 
 
           def insert_before_once(
@@ -1222,24 +1220,15 @@ jobs:
               encoding="utf-8",
           )
 
-          # Run the consistency audit on every future Pages build.
-          audit_command = (
-              "          python scripts/audit_site_consistency.py "
-              "--public public\n"
-          )
-          verify_marker = "          node --check public/assets/app.js\n"
-          if pages.count(
-              "python scripts/audit_site_consistency.py --public public"
-          ) < 2:
-              occurrences = pages.count(verify_marker)
-              if occurrences != 2:
-                  raise RuntimeError(
-                      "Expected two Pages verification blocks; found "
-                      f"{occurrences}."
-                  )
-              pages = pages.replace(
-                  verify_marker,
-                  verify_marker + audit_command,
+          # pages.yml already runs the complete unittest suite after every
+          # push, schedule and manual refresh. Wire the consistency audit
+          # into that existing test contract instead of editing a workflow
+          # file, which the GitHub Actions app token is not permitted to do.
+          if "import subprocess\n" not in tests:
+              tests = tests.replace(
+                  "from pathlib import Path\n",
+                  "from pathlib import Path\nimport subprocess\n",
+                  1,
               )
 
           # Update renamed assertions and add one high-level contract.
@@ -1280,10 +1269,6 @@ jobs:
                   html = (
                       ROOT / "public" / "index.html"
                   ).read_text(encoding="utf-8")
-                  pages = (
-                      ROOT / ".github" / "workflows" / "pages.yml"
-                  ).read_text(encoding="utf-8")
-
                   for marker in (
                       'class="home-explore"',
                       'role="tablist"',
@@ -1321,19 +1306,21 @@ jobs:
                       r"display\s*:\s*none",
                   )
                   self.assertIn('class="footer-links"', html)
-                  self.assertGreaterEqual(
-                      pages.count(
-                          "python scripts/audit_site_consistency.py "
-                          "--public public"
-                      ),
-                      2,
+                  audit = (
+                      ROOT
+                      / "scripts"
+                      / "audit_site_consistency.py"
                   )
-                  self.assertTrue(
-                      (
-                          ROOT
-                          / "scripts"
-                          / "audit_site_consistency.py"
-                      ).exists()
+                  self.assertTrue(audit.exists())
+                  subprocess.run(
+                      [
+                          sys.executable,
+                          str(audit),
+                          "--public",
+                          str(ROOT / "public"),
+                      ],
+                      cwd=ROOT,
+                      check=True,
                   )
 
           '''
@@ -1345,6 +1332,12 @@ jobs:
                   insertion_marker,
                   audit_test + insertion_marker,
                   1,
+              )
+
+          if "subprocess.run(" not in tests:
+              raise RuntimeError(
+                  "The permanent consistency audit was not wired into "
+                  "tests/test_build.py."
               )
 
           required_app = (
@@ -1387,11 +1380,10 @@ jobs:
           BUILD_PATH.write_text(build.rstrip() + "\n", encoding="utf-8")
           README_PATH.write_text(readme.rstrip() + "\n", encoding="utf-8")
           TEST_PATH.write_text(tests.rstrip() + "\n", encoding="utf-8")
-          PAGES_PATH.write_text(pages.rstrip() + "\n", encoding="utf-8")
 
           print(
               "Applied the final UI audit and installed the permanent "
-              "cross-page build consistency gate."
+              "cross-page consistency gate in the existing test suite."
           )
           PY
 
@@ -1420,11 +1412,6 @@ jobs:
             --source source \
             --config config \
             --output public
-
-      - name: Audit every generated page family
-        run: |
-          set -euo pipefail
-          python scripts/audit_site_consistency.py --public public
 
       - name: Run complete verification
         run: |
@@ -1459,7 +1446,6 @@ jobs:
           changed="$(git status --short | awk '{print $2}' | sort)"
           expected="$(
             printf '%s\n' \
-              .github/workflows/pages.yml \
               README.md \
               public/assets/app.js \
               public/assets/styles.css \
@@ -1479,8 +1465,8 @@ jobs:
           grep -F 'Final snapshot:' public/assets/app.js
           grep -F 'class="footer-links"' public/index.html
           grep -F \
-            'python scripts/audit_site_consistency.py --public public' \
-            .github/workflows/pages.yml
+            'subprocess.run(' \
+            tests/test_build.py
 
       - name: Commit and push
         id: commit
@@ -1501,7 +1487,6 @@ jobs:
             "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add \
-            .github/workflows/pages.yml \
             README.md \
             public/assets/app.js \
             public/assets/styles.css \
@@ -1519,5 +1504,5 @@ jobs:
         if: steps.commit.outputs.changed == 'true'
         run: |
           echo "The push to main automatically runs pages.yml."
-          echo "That workflow rebuilds and consistency-checks every page."
+          echo "Its existing unittest step runs the cross-page consistency audit."
           echo "No duplicate manual Pages dispatch is sent."
