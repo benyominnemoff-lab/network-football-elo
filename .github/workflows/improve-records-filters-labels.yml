@@ -44,6 +44,7 @@ jobs:
 
           python <<'PY'
           from pathlib import Path
+          import re
           import textwrap
 
 
@@ -54,6 +55,83 @@ jobs:
           app = APP_PATH.read_text(encoding="utf-8")
           builder = BUILD_PATH.read_text(encoding="utf-8")
           tests = TEST_PATH.read_text(encoding="utf-8")
+
+
+          # Migrate exact regression contracts that predate the requested
+          # public name, Rank change option and unified Records filters.
+          tests = tests.replace(
+              '        self.assertIn("USSR", names)\n',
+              (
+                  '        self.assertIn("Soviet Union", names)\n'
+                  '        self.assertNotIn("USSR", names)\n'
+              ),
+          )
+
+          old_tournament_sort_test = (
+              "        self.assertIn(\n"
+              "            '<option value=\"rating\">Rating</option>'\n"
+              "            '<option value=\"rating_change\">"
+              "Rating change</option>'\n"
+              "            '<option value=\"name\">Name</option>',\n"
+              "            javascript,\n"
+              "        )\n"
+          )
+          new_tournament_sort_test = (
+              "        self.assertIn(\n"
+              "            '<option value=\"rating\">Rating</option>'\n"
+              "            '<option value=\"rating_change\">"
+              "Rating change</option>'\n"
+              "            '<option value=\"rank_change\">"
+              "Rank change</option>'\n"
+              "            '<option value=\"name\">Name</option>',\n"
+              "            javascript,\n"
+              "        )\n"
+          )
+          if old_tournament_sort_test in tests:
+              tests = tests.replace(
+                  old_tournament_sort_test,
+                  new_tournament_sort_test,
+                  1,
+              )
+
+          tests = tests.replace(
+              (
+                  '        self.assertIn('
+                  '"const filtering = view === '
+                  '\\"numberones\\";", javascript)\n'
+              ),
+              (
+                  '        self.assertIn('
+                  '"numberOneFilters.hidden = '
+                  'view !== \\"numberones\\";", javascript)\n'
+              ),
+          )
+
+          old_record_contract = (
+              '            "Explore nation peaks, No. 1 chronology '
+              'and totals",\n'
+              '            "const bestTournamentCurrentNames = '
+              'new Map(",\n'
+              '            "const bestTournamentAliases = '
+              'new Map();",\n'
+              '            "label: displayAliases.length",\n'
+              '            "escapeHTML(team.label)",\n'
+          )
+          new_record_contract = (
+              '            "Explore team peaks, No. 1 chronology '
+              'and totals",\n'
+              '            \'id="peak-team-search"\',\n'
+              '            \'id="record-list-team"\',\n'
+              '            \'id="record-list-competition"\',\n'
+              '            "currentFirstRecordLabel",\n'
+              '            "peakRecordLabel",\n'
+          )
+          if old_record_contract in tests:
+              tests = tests.replace(
+                  old_record_contract,
+                  new_record_contract,
+                  1,
+              )
 
 
           def replace_once(
@@ -1188,6 +1266,14 @@ jobs:
                       "shuffledExamples(competitions)",
                       "function defaultMajorTournamentFamily",
                       "MAJOR_TOURNAMENT_PRECEDENCE",
+                      (
+                          "teamLink(peak.code, "
+                          "peak.display_nation || peak.nation)"
+                      ),
+                      (
+                          "teamLink(row.code, "
+                          "row.display_nation || row.nation)"
+                      ),
                   ):
                       self.assertIn(marker, javascript)
 
@@ -1294,7 +1380,7 @@ jobs:
 
                   for team in self.summary["teams"]:
                       self.assertTrue(team["lineage_names"])
-          ''').rstrip() + "\n\n"
+          ''').strip() + "\n\n"
 
           test_name = (
               "def test_record_filters_labels_and_major_tournament_default"
@@ -1312,6 +1398,34 @@ jobs:
                   marker,
                   textwrap.indent(test_method, "    ") + marker,
                   1,
+              )
+
+          if tests.count(
+              "    def "
+              "test_record_filters_labels_and_major_tournament_default"
+          ) != 1:
+              raise RuntimeError(
+                  "Records regression test was not registered "
+                  "as a StaticBuildTests method."
+              )
+
+          required_test_markers = (
+              'self.assertIn("Soviet Union", names)',
+              'self.assertNotIn("USSR", names)',
+              '<option value="rank_change">Rank change</option>',
+              'numberOneFilters.hidden = view !== \"numberones\";',
+              'id="record-list-team"',
+              "peakRecordLabel",
+          )
+          missing_test_markers = [
+              marker
+              for marker in required_test_markers
+              if marker not in tests
+          ]
+          if missing_test_markers:
+              raise RuntimeError(
+                  "Test-contract migration incomplete; missing: "
+                  + ", ".join(missing_test_markers)
               )
 
 
@@ -1384,6 +1498,39 @@ jobs:
           python -m py_compile \
             scripts/build_site.py \
             tests/test_build.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          tree = ast.parse(
+              Path("tests/test_build.py").read_text(
+                  encoding="utf-8"
+              )
+          )
+          test_class = next(
+              node
+              for node in tree.body
+              if isinstance(node, ast.ClassDef)
+              and node.name == "StaticBuildTests"
+          )
+          methods = {
+              node.name
+              for node in test_class.body
+              if isinstance(
+                  node,
+                  (ast.FunctionDef, ast.AsyncFunctionDef),
+              )
+          }
+          required = (
+              "test_record_filters_labels_"
+              "and_major_tournament_default"
+          )
+          if required not in methods:
+              raise RuntimeError(
+                  "Records regression test is not a class method."
+              )
+          print("Records regression test is registered.")
+          PY
 
       - name: Build complete site
         run: |
@@ -1396,6 +1543,9 @@ jobs:
       - name: Run complete validation
         run: |
           set -euo pipefail
+          python -m unittest \
+            tests.test_build.StaticBuildTests.test_record_filters_labels_and_major_tournament_default \
+            --verbose
           python -m unittest discover \
             --start-directory tests \
             --verbose
@@ -1456,6 +1606,12 @@ jobs:
             scripts/build_site.py
           grep -F \
             'test_record_filters_labels_and_major_tournament_default' \
+            tests/test_build.py
+          grep -F \
+            'self.assertIn("Soviet Union", names)' \
+            tests/test_build.py
+          grep -F \
+            '<option value="rank_change">Rank change</option>' \
             tests/test_build.py
 
       - name: Commit and push
