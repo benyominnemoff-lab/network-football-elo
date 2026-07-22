@@ -1434,6 +1434,167 @@ class StaticBuildTests(unittest.TestCase):
         self.assertIn("<urlset", (public / "sitemap.xml").read_text(encoding="utf-8"))
         self.assertIn("Page not found", (public / "404.html").read_text(encoding="utf-8"))
 
+    def test_tournament_defaults_empty_states_and_lineages(self) -> None:
+        javascript = (
+            ROOT / "public" / "assets" / "app.js"
+        ).read_text(encoding="utf-8")
+
+        helper_start = javascript.index(
+            "const MAJOR_TOURNAMENT_PRECEDENCE"
+        )
+        helper_end = javascript.index(
+            "  async function renderTournaments",
+            helper_start,
+        )
+        helper = javascript[helper_start:helper_end]
+        scenarios = (
+            'const family = (name, after, ongoing = false) => ({' + "\n"
+            '  name,' + "\n"
+            '  editions: [{ after, ongoing }],' + "\n"
+            '});' + "\n"
+            'const scenarios = [' + "\n"
+            '  [' + "\n"
+            '    family("FIFA World Cup", "2026-07-15"),' + "\n"
+            '    family("Copa América", "2026-07-20", true),' + "\n"
+            '  ],' + "\n"
+            '  [' + "\n"
+            '    family("UEFA European Championship", "2026-07-18", true),' + "\n"
+            '    family("Copa América", "2026-07-20", true),' + "\n"
+            '  ],' + "\n"
+            '  [' + "\n"
+            '    family("FIFA World Cup", "2026-07-01"),' + "\n"
+            '    family("Copa América", "2026-07-20"),' + "\n"
+            '  ],' + "\n"
+            '  [' + "\n"
+            '    family("FIFA World Cup", "2026-06-01"),' + "\n"
+            '    family("Copa América", "2026-07-20"),' + "\n"
+            '  ],' + "\n"
+            '];' + "\n"
+            'console.log(JSON.stringify(' + "\n"
+            '  scenarios.map(' + "\n"
+            '    (families) => defaultMajorTournamentFamily(families)?.name,' + "\n"
+            '  ),' + "\n"
+            '));' + "\n"
+        )
+        completed = subprocess.run(
+            ["node", "-e", helper + scenarios],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(
+            json.loads(completed.stdout),
+            [
+                "Copa América",
+                "UEFA European Championship",
+                "FIFA World Cup",
+                "Copa América",
+            ],
+        )
+
+        from build_site import (  # noqa: PLC0415
+            annotate_ongoing_tournament_editions,
+        )
+
+        catalog = {
+            "categories": [
+                "Global championships",
+                "Continental championships",
+            ],
+            "families": [
+                {
+                    "name": "FIFA World Cup",
+                    "editions": [
+                        {
+                            "start": "2026-06-01",
+                            "end": "2026-07-15",
+                            "after": "2026-07-15",
+                        }
+                    ],
+                },
+                {
+                    "name": "Copa América",
+                    "editions": [
+                        {
+                            "start": "2026-07-01",
+                            "end": "2026-07-20",
+                            "after": "2026-07-20",
+                        }
+                    ],
+                },
+            ],
+        }
+        fixture_payload = {
+            "fixtures": [
+                {
+                    "date": "2026-07-24",
+                    "tournament_code": "",
+                    "tournament_name": "Copa América",
+                }
+            ]
+        }
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "index.json"
+            path.write_text(
+                json.dumps(catalog),
+                encoding="utf-8",
+            )
+            annotate_ongoing_tournament_editions(
+                path,
+                fixture_payload,
+            )
+            annotated = json.loads(
+                path.read_text(encoding="utf-8")
+            )
+        by_name = {
+            family["name"]: family
+            for family in annotated["families"]
+        }
+        self.assertNotIn(
+            "ongoing",
+            by_name["FIFA World Cup"]["editions"][0],
+        )
+        self.assertTrue(
+            by_name["Copa América"]["editions"][0]["ongoing"]
+        )
+        self.assertEqual(
+            by_name["Copa América"]["editions"][0][
+                "scheduled_through"
+            ],
+            "2026-07-24",
+        )
+
+        serbia_names = {
+            "Serbia",
+            "Serbia and Montenegro",
+            "Yugoslavia",
+        }
+        serbia = next(
+            team
+            for team in self.summary["teams"]
+            if serbia_names
+            & set(
+                [team["nation"]]
+                + team.get("aliases", [])
+                + team.get("lineage_names", [])
+            )
+        )
+        self.assertTrue(
+            serbia_names <= set(serbia["lineage_names"])
+        )
+
+        for marker in (
+            "filteredEmptyState",
+            "Change or clear the filters to see results.",
+            "completePublicLineageNames",
+            "formatPublicNameList",
+            "team-lineage-note",
+            "const lineageNamesByCode = new Map(",
+            "source.length",
+        ):
+            self.assertIn(marker, javascript)
+
 
 if __name__ == "__main__":
     unittest.main()

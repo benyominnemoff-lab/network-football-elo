@@ -61,6 +61,41 @@
       )
       : "";
   };
+
+const PUBLIC_LINEAGE_COMPLETIONS = [
+  ["Serbia", "Serbia and Montenegro", "Yugoslavia"],
+];
+const completePublicLineageNames = (values) => {
+  const names = [
+    ...new Set(
+      values
+        .map(publicTeamName)
+        .map((value) => String(value).trim())
+        .filter(Boolean),
+    ),
+  ];
+  const folded = new Set(names.map(foldSearch));
+  PUBLIC_LINEAGE_COMPLETIONS.forEach((group) => {
+    if (group.some((name) => folded.has(foldSearch(name)))) {
+      group.forEach((name) => {
+        const publicName = publicTeamName(name);
+        if (!names.includes(publicName)) names.push(publicName);
+      });
+    }
+  });
+  return names;
+};
+const formatPublicNameList = (values) => {
+  const names = completePublicLineageNames(values);
+  if (names.length < 2) return names[0] || "";
+  if (names.length === 2) return names.join(" and ");
+  return `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`;
+};
+const filteredEmptyState = (subject) => (
+  `<div class="empty"><h2>No ${subject} match these filters.</h2>`
+  + "<p>Change or clear the filters to see results.</p></div>"
+);
+
   const initialiseTeamAliasSearch = () => {
     teamAliasSearch = new Map(
       summary.teams.map((team) => [
@@ -464,7 +499,7 @@
   }
 
   function rankingsTable(items, showRank) {
-    if (!items.length) return `<div class="empty">No teams match those filters.</div>`;
+    if (!items.length) return filteredEmptyState("teams");
     return `<div class="table-hint" aria-hidden="true">Swipe horizontally to see all columns →</div><div class="table-shell"><table>
       <thead><tr><th class="numeric">Rank</th><th>Team</th><th class="numeric">Rating</th><th class="numeric">12-month change</th><th class="numeric hide-mobile">Estimate before uncertainty</th><th class="numeric hide-mobile">Matches</th><th>Recent form</th><th class="hide-mobile">All-time peak</th></tr></thead>
       <tbody>${items.map((team, index) => `<tr>
@@ -610,7 +645,10 @@
       visible.sort((a, b) => sort === "name"
         ? a.nation.localeCompare(b.nation)
         : (b[sort] ?? -Infinity) - (a[sort] ?? -Infinity) || a.nation.localeCompare(b.nation));
-      table.innerHTML = historicalRankingsTable(visible, currentDate);
+
+table.innerHTML = (!visible.length && query)
+  ? filteredEmptyState("teams")
+  : historicalRankingsTable(visible, currentDate);
     };
 
     const loadDate = async (value) => {
@@ -751,6 +789,7 @@ const MAJOR_TOURNAMENT_PRECEDENCE = [
   "OFC Nations Cup",
 ];
 
+
 function defaultMajorTournamentFamily(families) {
   const major = families
     .filter(
@@ -772,6 +811,7 @@ function defaultMajorTournamentFamily(families) {
       return {
         family,
         edition,
+        ongoing: Boolean(edition.ongoing),
         time: new Date(
           `${edition.after}T00:00:00Z`,
         ).valueOf(),
@@ -781,16 +821,7 @@ function defaultMajorTournamentFamily(families) {
 
   if (!major.length) return null;
 
-  const newestTime = Math.max(
-    ...major.map((candidate) => candidate.time),
-  );
-  const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-  const closeTogether = major.filter(
-    (candidate) => (
-      newestTime - candidate.time <= thirtyDays
-    ),
-  );
-  closeTogether.sort(
+  const byPrecedence = (candidates) => [...candidates].sort(
     (first, second) => (
       MAJOR_TOURNAMENT_PRECEDENCE.indexOf(
         first.family.name,
@@ -801,7 +832,24 @@ function defaultMajorTournamentFamily(families) {
       || second.time - first.time
     ),
   );
-  return closeTogether[0]?.family || null;
+
+  const ongoing = major.filter(
+    (candidate) => candidate.ongoing,
+  );
+  if (ongoing.length) {
+    return byPrecedence(ongoing)[0]?.family || null;
+  }
+
+  const newestTime = Math.max(
+    ...major.map((candidate) => candidate.time),
+  );
+  const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+  const closeTogether = major.filter(
+    (candidate) => (
+      newestTime - candidate.time <= thirtyDays
+    ),
+  );
+  return byPrecedence(closeTogether)[0]?.family || null;
 }
 
   async function renderTournaments(route) {
@@ -1221,6 +1269,15 @@ function defaultMajorTournamentFamily(families) {
         (team) => [team.code, publicTeamName(team.nation)],
       ),
     );
+    const lineageNamesByCode = new Map(
+      summary.teams.map((team) => [
+        team.code,
+        completePublicLineageNames([
+          team.nation,
+          ...(team.lineage_names || []),
+        ]),
+      ]),
+    );
     const majorTeamCodes = new Set([
       "AR", "BE", "BR", "DE", "EN", "ES", "FR",
       "HR", "IT", "MX", "NL", "PT", "RU", "UY",
@@ -1292,9 +1349,11 @@ function defaultMajorTournamentFamily(families) {
               || currentName
               || code
             );
-          const aliases = historicalNames.filter(
-            (name) => name !== primary,
-          );
+          const aliases = completePublicLineageNames([
+            primary,
+            ...historicalNames,
+            ...(lineageNamesByCode.get(code) || []),
+          ]).filter((name) => name !== primary);
           const label = aliases.length
             ? `${primary} (incl. ${aliases.join(", ")})`
             : primary;
@@ -1521,7 +1580,7 @@ function defaultMajorTournamentFamily(families) {
   }
 
   function matchTable(matches, perspective = "") {
-    if (!matches.length) return `<div class="empty">No matches found.</div>`;
+    if (!matches.length) return filteredEmptyState("matches");
     return `<div class="table-shell match-history-table"><table><thead><tr><th>Date</th><th>Match</th><th>H/A/N</th><th class="numeric">Score</th><th class="hide-mobile">Competition</th><th>Pre-match W/D/L</th><th>Team ratings before → after</th><th class="numeric">Combined pre-match rating</th></tr></thead><tbody>${matches.map((match) => `<tr>
       <td class="mono" data-label="Date">${validDate(match.date)}</td>
       <td data-label="Match">${teamLink(match.a, match.an)} <span class="muted">v</span> ${teamLink(match.b, match.bn)}</td>
@@ -1616,43 +1675,39 @@ function renderRecords(route) {
   const currentRecordName = (code) => publicTeamName(
     recordTeamByCode.get(code)?.nation || code,
   );
-  const uniqueRecordNames = (values) => [
-    ...new Set(
-      values
-        .map(publicTeamName)
-        .map((value) => String(value).trim())
-        .filter(Boolean),
-    ),
-  ];
+    const uniqueRecordNames = completePublicLineageNames;
 
   const currentFirstRecordLabel = (code, values) => {
+    const team = recordTeamByCode.get(code);
     const current = currentRecordName(code);
-    const names = uniqueRecordNames([current, ...values]);
-    const first = names.shift() || code;
-    return names.length
-      ? `${first} (incl. ${names.join(", ")})`
+    const names = uniqueRecordNames([
+      current,
+      ...(team?.lineage_names || []),
+      ...values,
+    ]);
+    const first = current || names[0] || code;
+    const included = names.filter((name) => name !== first);
+    return included.length
+      ? `${first} (incl. ${included.join(", ")})`
       : first;
   };
 
   const peakRecordLabel = (peak) => {
+    const team = recordTeamByCode.get(peak.code);
     const current = currentRecordName(peak.code);
     const peakName = publicTeamName(
       peak.historical_name || peak.nation,
     );
-    const lineage = uniqueRecordNames(
-      recordTeamByCode.get(peak.code)?.lineage_names || [],
-    );
-    if (peakName !== current) {
-      return current
-        ? `${peakName} (incl. ${current})`
-        : peakName;
-    }
-    const former = lineage.filter(
-      (name) => name !== current,
-    );
-    return former.length
-      ? `${current} (incl. ${former.join(", ")})`
-      : current;
+    const lineage = uniqueRecordNames([
+      peakName,
+      current,
+      ...(team?.lineage_names || []),
+    ]);
+    const first = peakName || current || peak.code;
+    const included = lineage.filter((name) => name !== first);
+    return included.length
+      ? `${first} (incl. ${included.join(", ")})`
+      : first;
   };
 
   const peakRows = (summary.peaks || [])
@@ -2043,17 +2098,21 @@ function renderRecords(route) {
 
     document.getElementById(
       "record-table",
-    ).innerHTML = view === "peaks"
-      ? peakTable(visible)
-      : view === "numberones"
-        ? numberOneTable(visible)
-        : view === "numberonesummary"
-          ? numberOneSummaryTable(visible)
-          : view === "matches"
-            ? matchRecordTable(visible)
-            : view === "upsets"
-              ? upsetTable(visible)
-              : bestTournamentTable(visible);
+    ).innerHTML = source.length
+      ? (
+        view === "peaks"
+          ? peakTable(visible)
+          : view === "numberones"
+            ? numberOneTable(visible)
+            : view === "numberonesummary"
+              ? numberOneSummaryTable(visible)
+              : view === "matches"
+                ? matchRecordTable(visible)
+                : view === "upsets"
+                  ? upsetTable(visible)
+                  : bestTournamentTable(visible)
+      )
+      : filteredEmptyState("records");
 
     document.getElementById(
       "record-count",
@@ -2829,7 +2888,23 @@ function renderRecords(route) {
     const history = cutoff ? page.history.filter((point) => point.date <= cutoff) : page.history;
     const availableMatches = cutoff ? page.matches.filter((match) => match.date <= cutoff) : page.matches;
     const latestPoint = history.length ? history[history.length - 1] : null;
-    const displayName = cutoff && latestPoint?.historical_name ? latestPoint.historical_name : team.nation;
+
+const displayName = cutoff && latestPoint?.historical_name
+  ? latestPoint.historical_name
+  : team.nation;
+const lineageNames = completePublicLineageNames([
+  team.nation,
+  ...(team.lineage_names || []),
+]);
+const lineageNote = lineageNames.length > 1
+  ? (
+    '<div class="record-note team-lineage-note">'
+    + "<strong>Lineage</strong><div><b>"
+    + escapeHTML(formatPublicNameList(lineageNames))
+    + "</b> share one continuous rating history. "
+    + "Match names follow the date played.</div></div>"
+  )
+  : "";
     const historicalStats = availableMatches.reduce((stats, match) => {
       stats.matches += 1;
       stats.gf += match.gf;
@@ -2845,6 +2920,7 @@ function renderRecords(route) {
           <div><p class="eyebrow">${cutoff ? `Historical record through ${validDate(cutoff)}` : team.rank ? `Current world no. ${team.rank}` : "Historical team record"}</p><h1>${escapeHTML(displayName)}</h1>${cutoff && displayName !== team.nation ? `<p class="muted">Part of the continuous ${escapeHTML(team.nation)} rating history</p>` : ""}</div>
           <div class="team-rating"><strong>${rating(cutoff ? latestPoint?.rating : team.rating)}</strong><span>${cutoff && latestPoint ? `after ${validDate(latestPoint.date)} · ` : ""}uncertainty ${rating(cutoff ? latestPoint?.se : team.se)}</span></div>
         </section>
+        ${lineageNote}
         <div class="team-stats">
           <div><span>Matches</span><strong>${number(cutoff ? historicalStats.matches : team.matches)}</strong></div><div><span>Record</span><strong>${cutoff ? `${historicalStats.W}–${historicalStats.D}–${historicalStats.L}` : `${team.wins}–${team.draws}–${team.losses}`}</strong></div><div><span>Goals</span><strong>${cutoff ? `${historicalStats.gf}–${historicalStats.ga}` : `${team.gf}–${team.ga}`}</strong></div><div><span title="Effective variety of recent opponents; higher values mean broader evidence.">${cutoff ? "Latest match" : "Opponent breadth"}</span><strong>${cutoff ? (availableMatches.length ? validDate(availableMatches[0].date) : "—") : number(team.breadth, 1)}</strong></div><div><span>${cutoff ? "Peak by date" : "All-time peak"}</span><strong>${rating(cutoff ? historicalPeak?.rating : team.peak?.rating)}</strong></div>
         </div>

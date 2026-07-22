@@ -111,6 +111,16 @@ MANUAL_TEAM_ALIAS_GROUPS: tuple[tuple[str, ...], ...] = (
 )
 
 
+
+MANDATORY_LINEAGE_COMPLETIONS: tuple[tuple[str, ...], ...] = (
+    (
+        "Serbia",
+        "Serbia and Montenegro",
+        "Yugoslavia",
+    ),
+)
+
+
 def public_team_name(value: Any) -> Any:
     if isinstance(value, str):
         return PUBLIC_TEAM_NAME_REPLACEMENTS.get(value, value)
@@ -328,6 +338,25 @@ def attach_lineage_names(output: Any) -> None:
     for code, name in current_names.items():
         names.setdefault(code, set()).add(name)
 
+    for group in MANDATORY_LINEAGE_COMPLETIONS:
+        public_group = {
+            str(public_team_name(value)).strip()
+            for value in group
+            if str(public_team_name(value)).strip()
+        }
+        folded_group = {
+            value.casefold() for value in public_group
+        }
+        matching_codes = [
+            code
+            for code, values in names.items()
+            if {
+                value.casefold() for value in values
+            } & folded_group
+        ]
+        for code in matching_codes:
+            names[code].update(public_group)
+
     lineage_rows = {
         code: sorted(
             values,
@@ -430,6 +459,99 @@ def attach_team_aliases(
                 code,
                 [team["nation"]],
             )
+
+
+
+MAJOR_TOURNAMENT_FAMILIES = {
+    "FIFA World Cup",
+    "UEFA European Championship",
+    "Copa América",
+    "Africa Cup of Nations",
+    "AFC Asian Cup",
+    "CONCACAF Gold Cup",
+    "OFC Nations Cup",
+}
+
+
+def annotate_ongoing_tournament_editions(
+    catalog_path: Path,
+    fixtures_payload: dict[str, Any],
+) -> None:
+    if not catalog_path.exists():
+        raise RuntimeError(
+            "Tournament catalog is missing before ongoing annotation."
+        )
+
+    catalog = json.loads(
+        catalog_path.read_text(encoding="utf-8")
+    )
+    future_by_family: dict[str, list[date]] = {}
+
+    for fixture in fixtures_payload.get("fixtures", []):
+        identity = tournament_identity(
+            str(fixture.get("tournament_code", "")),
+            str(fixture.get("tournament_name", "")),
+            1,
+        )
+        if identity is None:
+            continue
+        _, family_name = identity
+        if family_name not in MAJOR_TOURNAMENT_FAMILIES:
+            continue
+        try:
+            fixture_day = date.fromisoformat(
+                str(fixture.get("date", ""))
+            )
+        except ValueError:
+            continue
+        future_by_family.setdefault(
+            family_name,
+            [],
+        ).append(fixture_day)
+
+    for family in catalog.get("families", []):
+        editions = family.get("editions", [])
+        for edition in editions:
+            edition.pop("ongoing", None)
+            edition.pop("scheduled_through", None)
+        if (
+            family.get("name") not in MAJOR_TOURNAMENT_FAMILIES
+            or not editions
+        ):
+            continue
+
+        latest = max(
+            editions,
+            key=lambda edition: (
+                str(edition.get("after", "")),
+                str(edition.get("start", "")),
+            ),
+        )
+        try:
+            latest_end = date.fromisoformat(
+                str(latest["end"])
+            )
+        except (KeyError, ValueError):
+            continue
+
+        scheduled = sorted(
+            fixture_day
+            for fixture_day in future_by_family.get(
+                str(family["name"]),
+                [],
+            )
+            if (
+                fixture_day >= latest_end
+                and (fixture_day - latest_end).days <= 45
+            )
+        )
+        if scheduled:
+            latest["ongoing"] = True
+            latest["scheduled_through"] = (
+                scheduled[-1].isoformat()
+            )
+
+    write_json(catalog_path, catalog)
 
 
 def write_json(path: Path, value: Any) -> None:
@@ -1762,6 +1884,10 @@ def main() -> None:
     write_json(data / "summary.json", output.summary)
     write_json(data / "state.json", output.state)
     fixtures = build_fixtures(args.source, output)
+    annotate_ongoing_tournament_editions(
+        data / "tournaments" / "index.json",
+        fixtures,
+    )
     write_json(data / "fixtures.json", fixtures)
     update_prospective_ledger(
         args.source,
