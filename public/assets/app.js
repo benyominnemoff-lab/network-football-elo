@@ -740,6 +740,70 @@
       }).join("")}</tbody></table></div>`;
   }
 
+
+const MAJOR_TOURNAMENT_PRECEDENCE = [
+  "FIFA World Cup",
+  "UEFA European Championship",
+  "Copa América",
+  "Africa Cup of Nations",
+  "AFC Asian Cup",
+  "CONCACAF Gold Cup",
+  "OFC Nations Cup",
+];
+
+function defaultMajorTournamentFamily(families) {
+  const major = families
+    .filter(
+      (family) => (
+        MAJOR_TOURNAMENT_PRECEDENCE.includes(
+          family.name,
+        )
+        && family.editions?.length
+      ),
+    )
+    .map((family) => {
+      const edition = [...family.editions].sort(
+        (first, second) => (
+          String(second.after).localeCompare(
+            String(first.after),
+          )
+        ),
+      )[0];
+      return {
+        family,
+        edition,
+        time: new Date(
+          `${edition.after}T00:00:00Z`,
+        ).valueOf(),
+      };
+    })
+    .filter((candidate) => Number.isFinite(candidate.time));
+
+  if (!major.length) return null;
+
+  const newestTime = Math.max(
+    ...major.map((candidate) => candidate.time),
+  );
+  const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+  const closeTogether = major.filter(
+    (candidate) => (
+      newestTime - candidate.time <= thirtyDays
+    ),
+  );
+  closeTogether.sort(
+    (first, second) => (
+      MAJOR_TOURNAMENT_PRECEDENCE.indexOf(
+        first.family.name,
+      )
+      - MAJOR_TOURNAMENT_PRECEDENCE.indexOf(
+        second.family.name,
+      )
+      || second.time - first.time
+    ),
+  );
+  return closeTogether[0]?.family || null;
+}
+
   async function renderTournaments(route) {
     setTitle("Tournament rankings");
     loading("Loading tournament rankings…");
@@ -756,9 +820,10 @@
     const requestedFamily = families.find(
       (family) => family.id === route.query.get("tournament"),
     );
-    const defaultFamily = families.find(
-      (family) => family.name === "FIFA World Cup",
-    ) || families[0];
+    const defaultFamily = (
+      defaultMajorTournamentFamily(families)
+      || families[0]
+    );
     let selectedFamily = requestedFamily || defaultFamily;
     let selectedEdition = selectedFamily.editions.find(
       (edition) => edition.id === route.query.get("edition"),
@@ -1485,7 +1550,7 @@
 
   function peakTable(peaks) {
     return `<div class="table-hint" aria-hidden="true">Swipe horizontally to see all columns →</div><div class="table-shell"><table><thead><tr><th class="numeric">Rank</th><th>Team</th><th class="numeric">Peak rating</th><th>Date</th><th>Peak-making result</th><th class="hide-mobile">Competition</th></tr></thead><tbody>${peaks.map((peak, index) => `<tr>
-      <td class="rank-cell numeric">${index + 1}</td><td>${teamLink(peak.code, peak.nation)}</td><td class="numeric"><span class="rating-main">${rating(peak.rating)}</span><span class="rating-sub">estimate before uncertainty ${rating(peak.mean)} · uncertainty ${rating(peak.se)}</span></td><td>${validDate(peak.date)}</td><td>${escapeHTML(peak.historical_name)} ${escapeHTML(peak.score)} ${escapeHTML(peak.opponent)}</td><td class="hide-mobile">${escapeHTML(peak.tournament)}</td>
+      <td class="rank-cell numeric">${index + 1}</td><td>${teamLink(peak.code, peak.display_nation || peak.nation)}</td><td class="numeric"><span class="rating-main">${rating(peak.rating)}</span><span class="rating-sub">estimate before uncertainty ${rating(peak.mean)} · uncertainty ${rating(peak.se)}</span></td><td>${validDate(peak.date)}</td><td>${escapeHTML(peak.historical_name)} ${escapeHTML(peak.score)} ${escapeHTML(peak.opponent)}</td><td class="hide-mobile">${escapeHTML(peak.tournament)}</td>
     </tr>`).join("")}</tbody></table></div>`;
   }
 
@@ -1503,7 +1568,7 @@
 
   function numberOneSummaryTable(rows) {
     return `<div class="table-hint" aria-hidden="true">Swipe horizontally to see all columns →</div><div class="table-shell"><table><thead><tr><th class="numeric">Rank</th><th>Team</th><th class="numeric">Total days</th><th class="numeric">Spells</th><th>First reached No. 1</th><th>Latest date at No. 1</th></tr></thead><tbody>${rows.map((row, index) => `<tr>
-      <td class="rank-cell numeric">${index + 1}</td><td>${teamLink(row.code, row.nation)}</td><td class="numeric"><span class="rating-main">${number(row.days)}</span></td><td class="numeric">${number(row.spells)}</td><td>${validDate(row.first)}</td><td>${row.current ? "<b>Current</b>" : validDate(row.latest)}</td>
+      <td class="rank-cell numeric">${index + 1}</td><td>${teamLink(row.code, row.display_nation || row.nation)}</td><td class="numeric"><span class="rating-main">${number(row.days)}</span></td><td class="numeric">${number(row.spells)}</td><td>${validDate(row.first)}</td><td>${row.current ? "<b>Current</b>" : validDate(row.latest)}</td>
     </tr>`).join("")}</tbody></table></div>`;
   }
 
@@ -1531,7 +1596,7 @@
         const tournamentURL = `#/tournaments?tournament=${encodeURIComponent(row.tournament_id)}&edition=${encodeURIComponent(row.edition_id)}&view=after`;
         return `<tr>
           <td class="rank-cell numeric">${index + 1}</td>
-          <td>${teamLink(row.code, row.nation, row.after)}</td>
+          <td>${teamLink(row.code, row.display_nation || row.nation, row.after)}</td>
           <td><a class="team-link" href="${tournamentURL}">${escapeHTML(row.tournament)}</a></td>
           <td class="hide-mobile">${escapeHTML(row.edition)}</td>
           <td class="numeric"><span class="rating-main movement-up">+${rating(row.rating_gain)}</span></td>
@@ -1542,405 +1607,674 @@
     </table></div>`;
   }
 
-  function renderRecords(route) {
-    setTitle("Records");
-    const bestTournamentRows = (summary.best_tournaments || []).slice(0, 500);
-        const bestTournamentCurrentNames = new Map(
-          summary.teams.map(
-            (team) => [team.code, publicTeamName(team.nation)],
-          ),
-        );
-        const bestTournamentAliases = new Map();
 
-        bestTournamentRows.forEach((row) => {
-          const currentName = bestTournamentCurrentNames.get(
-            row.code,
-          );
-          if (
-            !row.nation
-            || row.nation === currentName
-          ) {
-            return;
-          }
-          if (!bestTournamentAliases.has(row.code)) {
-            bestTournamentAliases.set(row.code, new Set());
-          }
-          bestTournamentAliases.get(row.code).add(
-          publicTeamName(row.nation),
-        );
-        });
+function renderRecords(route) {
+  setTitle("Records");
+  const recordTeamByCode = new Map(
+    summary.teams.map((team) => [team.code, team]),
+  );
+  const currentRecordName = (code) => publicTeamName(
+    recordTeamByCode.get(code)?.nation || code,
+  );
+  const uniqueRecordNames = (values) => [
+    ...new Set(
+      values
+        .map(publicTeamName)
+        .map((value) => String(value).trim())
+        .filter(Boolean),
+    ),
+  ];
 
-        const bestTournamentTeams = [
-          ...new Set(
-            bestTournamentRows.map((row) => row.code),
-          ),
-        ]
-          .map((code) => {
-            const aliases = [
-              ...(bestTournamentAliases.get(code) || []),
-            ].sort((a, b) => a.localeCompare(b));
-            const nation = (
-              bestTournamentCurrentNames.get(code)
-              || aliases[0]
-              || code
-            );
-            const displayAliases = aliases.filter(
-              (alias) => alias !== nation,
-            );
-            return {
-              code,
-              nation,
-              aliases: displayAliases,
-              label: displayAliases.length
-                ? `${nation} (incl. ${displayAliases.join(", ")})`
-                : nation,
-            };
-          })
-          .sort(
-            (a, b) => (
-              a.label.localeCompare(b.label)
-              || a.code.localeCompare(b.code)
-            ),
-          );
-    const bestTournamentTeamOptions = bestTournamentTeams
-      .map(
+  const currentFirstRecordLabel = (code, values) => {
+    const current = currentRecordName(code);
+    const names = uniqueRecordNames([current, ...values]);
+    const first = names.shift() || code;
+    return names.length
+      ? `${first} (incl. ${names.join(", ")})`
+      : first;
+  };
+
+  const peakRecordLabel = (peak) => {
+    const current = currentRecordName(peak.code);
+    const peakName = publicTeamName(
+      peak.historical_name || peak.nation,
+    );
+    const lineage = uniqueRecordNames(
+      recordTeamByCode.get(peak.code)?.lineage_names || [],
+    );
+    if (peakName !== current) {
+      return current
+        ? `${peakName} (incl. ${current})`
+        : peakName;
+    }
+    const former = lineage.filter(
+      (name) => name !== current,
+    );
+    return former.length
+      ? `${current} (incl. ${former.join(", ")})`
+      : current;
+  };
+
+  const peakRows = (summary.peaks || [])
+    .slice(0, 500)
+    .map((row) => ({
+      ...row,
+      display_nation: peakRecordLabel(row),
+    }));
+  const numberOneRows = summary.number_ones || [];
+  const numberOneSummaryRows = (
+    summary.number_one_summary || []
+  ).map((row) => ({
+    ...row,
+    display_nation: row.included_names?.length
+      ? (
+        `${publicTeamName(row.nation)} `
+        + `(incl. ${row.included_names
+          .map(publicTeamName)
+          .join(", ")})`
+      )
+      : publicTeamName(row.nation),
+  }));
+  const highestMatchRows = (
+    summary.top_matches || []
+  ).slice(0, 500);
+  const upsetRows = (summary.upsets || []).slice(0, 500);
+  const bestTournamentRows = (
+    summary.best_tournaments || []
+  ).slice(0, 500);
+
+  const pairSources = {
+    matches: highestMatchRows,
+    upsets: upsetRows,
+    tournaments: bestTournamentRows,
+  };
+  const pairViews = new Set(Object.keys(pairSources));
+
+  const recordTeamChoices = (rows, recordView) => {
+    const namesByCode = new Map();
+    const add = (code, name) => {
+      if (!code) return;
+      if (!namesByCode.has(code)) {
+        namesByCode.set(code, []);
+      }
+      namesByCode.get(code).push(name);
+    };
+    rows.forEach((row) => {
+      if (recordView === "tournaments") {
+        add(row.code, row.nation);
+      } else {
+        add(row.code1, row.team1);
+        add(row.code2, row.team2);
+      }
+    });
+    return [...namesByCode.entries()]
+      .map(([code, names]) => ({
+        code,
+        label: currentFirstRecordLabel(code, names),
+      }))
+      .sort(
+        (first, second) => (
+          first.label.localeCompare(second.label)
+          || first.code.localeCompare(second.code)
+        ),
+      );
+  };
+
+  const recordCompetitions = (rows) => [
+    ...new Set(
+      rows
+        .map((row) => row.tournament)
+        .filter(Boolean),
+    ),
+  ].sort((first, second) => first.localeCompare(second));
+
+  const tournamentLabels = new Map(
+    recordTeamChoices(
+      bestTournamentRows,
+      "tournaments",
+    ).map((team) => [team.code, team.label]),
+  );
+  bestTournamentRows.forEach((row) => {
+    row.display_nation = (
+      tournamentLabels.get(row.code)
+      || row.nation
+    );
+  });
+
+  const peakPlaceholder = (
+    shuffledExamples(
+      peakRows.map((row) => row.display_nation),
+    )
+    || "Search peak teams…"
+  );
+  const numberOnePlaceholder = (
+    shuffledExamples(
+      numberOneRows.map((row) => row.nation),
+    )
+    || "Search former No. 1 teams…"
+  );
+
+  content.innerHTML = `
+    <div class="page">
+      <header class="page-heading"><div><p class="eyebrow">Historical rating records</p><h1>Records</h1></div><p class="lede">Explore team peaks, No. 1 chronology and totals, highest-rated matches, largest upsets and the biggest tournament rating gains.</p></header>
+      <div class="record-tabs" role="tablist" aria-label="Record type"><button class="button button-dark" role="tab" aria-controls="record-table" data-record="peaks" aria-pressed="true" aria-selected="true" tabindex="0">Team peaks</button><button class="button" role="tab" aria-controls="record-table" data-record="numberones" aria-pressed="false" aria-selected="false" tabindex="-1">No. 1 chronology</button><button class="button" role="tab" aria-controls="record-table" data-record="numberonesummary" aria-pressed="false" aria-selected="false" tabindex="-1">No. 1 totals</button><button class="button" role="tab" aria-controls="record-table" data-record="matches" aria-pressed="false" aria-selected="false" tabindex="-1">Highest-rated matches</button><button class="button" role="tab" aria-controls="record-table" data-record="upsets" aria-pressed="false" aria-selected="false" tabindex="-1">Largest upsets</button><button class="button" role="tab" aria-controls="record-table" data-record="tournaments" aria-pressed="false" aria-selected="false" tabindex="-1">Best tournaments</button></div>
+
+      <div id="peak-filters" class="toolbar record-filters" hidden>
+        <div class="field field-grow"><label for="peak-team-search">Find a team</label><input id="peak-team-search" type="search" placeholder="${escapeHTML(peakPlaceholder)}" value="${escapeHTML(route.query.get("peak") || "")}"></div>
+      </div>
+
+      <div id="number-one-filters" class="toolbar record-filters" hidden>
+        <div class="field field-grow"><label for="number-one-team">Filter team</label><input id="number-one-team" type="search" placeholder="${escapeHTML(numberOnePlaceholder)}" value="${escapeHTML(route.query.get("q") || "")}"></div>
+        <div class="field"><label for="number-one-from">From date</label><div class="date-combo"><input id="number-one-from" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/YYYY" value="${route.query.get("from") ? validDate(route.query.get("from")) : ""}" aria-describedby="number-one-from-error"><button class="button" type="button" id="number-one-from-button" aria-label="Open from-date calendar">Calendar</button><input id="number-one-from-calendar" class="native-date-proxy" type="date" min="1872-01-01" max="${summary.meta.results_through}" value="${escapeHTML(route.query.get("from") || "")}" tabindex="-1" aria-hidden="true"></div><span id="number-one-from-error" class="field-error" role="alert"></span></div>
+        <div class="field"><label for="number-one-to">To date</label><div class="date-combo"><input id="number-one-to" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/YYYY" value="${route.query.get("to") ? validDate(route.query.get("to")) : ""}" aria-describedby="number-one-to-error"><button class="button" type="button" id="number-one-to-button" aria-label="Open to-date calendar">Calendar</button><input id="number-one-to-calendar" class="native-date-proxy" type="date" min="1872-01-01" max="${summary.meta.results_through}" value="${escapeHTML(route.query.get("to") || "")}" tabindex="-1" aria-hidden="true"></div><span id="number-one-to-error" class="field-error" role="alert"></span></div>
+      </div>
+
+      <div id="record-list-filters" class="toolbar record-filters best-tournament-filters" hidden>
+        <div class="field">
+          <label for="record-list-team">Team</label>
+          <select id="record-list-team">
+            <option value="">Any team</option>
+          </select>
+        </div>
+        <div class="field field-grow">
+          <label for="record-list-competition">Competition</label>
+          <input id="record-list-competition" type="search" list="record-competition-suggestions" placeholder="Competition…" value="${escapeHTML(route.query.get("competition") || "")}">
+          <datalist id="record-competition-suggestions"></datalist>
+        </div>
+      </div>
+
+      <div id="record-note" class="record-note"></div>
+      <div id="record-table" role="tabpanel" tabindex="0" aria-live="polite"></div>
+      <div class="pagination"><span id="record-count" class="muted small" aria-live="polite"></span><div class="pagination-actions"><button id="record-more" class="button">Show more</button><button id="record-all" class="button button-quiet">Show all</button></div></div>
+    </div>`;
+
+  let view = [
+    "peaks",
+    "numberones",
+    "numberonesummary",
+    "matches",
+    "upsets",
+    "tournaments",
+  ].includes(route.query.get("view"))
+    ? route.query.get("view")
+    : "peaks";
+  let shown = (
+    Math.max(
+      25,
+      Number(route.query.get("shown") || 25),
+    )
+    || 25
+  );
+
+  const sources = {
+    peaks: peakRows,
+    numberones: numberOneRows,
+    numberonesummary: numberOneSummaryRows,
+    matches: highestMatchRows,
+    upsets: upsetRows,
+    tournaments: bestTournamentRows,
+  };
+  const peakFilters = document.getElementById(
+    "peak-filters",
+  );
+  const numberOneFilters = document.getElementById(
+    "number-one-filters",
+  );
+  const listFilters = document.getElementById(
+    "record-list-filters",
+  );
+  const listTeam = document.getElementById(
+    "record-list-team",
+  );
+  const listCompetition = document.getElementById(
+    "record-list-competition",
+  );
+  const competitionSuggestions = document.getElementById(
+    "record-competition-suggestions",
+  );
+
+  const configureListFilters = (
+    preferredTeam = "",
+    preserveCompetition = true,
+  ) => {
+    if (!pairViews.has(view)) return;
+    const source = pairSources[view];
+    const choices = recordTeamChoices(source, view);
+    listTeam.innerHTML = (
+      '<option value="">Any team</option>'
+      + choices.map(
         (team) => (
           `<option value="${escapeHTML(team.code)}">`
           + `${escapeHTML(team.label)}</option>`
         ),
-      )
-      .join("");
-    content.innerHTML = `
-      <div class="page">
-        <header class="page-heading"><div><p class="eyebrow">Historical rating records</p><h1>Records</h1></div><p class="lede">Explore nation peaks, No. 1 chronology and totals, top matchups, largest upsets and the biggest tournament rating gains.</p></header>
-        <div class="record-tabs" role="tablist" aria-label="Record type"><button class="button button-dark" role="tab" aria-controls="record-table" data-record="peaks" aria-pressed="true" aria-selected="true" tabindex="0">Team peaks</button><button class="button" role="tab" aria-controls="record-table" data-record="numberones" aria-pressed="false" aria-selected="false" tabindex="-1">No. 1 chronology</button><button class="button" role="tab" aria-controls="record-table" data-record="numberonesummary" aria-pressed="false" aria-selected="false" tabindex="-1">No. 1 totals</button><button class="button" role="tab" aria-controls="record-table" data-record="matches" aria-pressed="false" aria-selected="false" tabindex="-1">Highest-rated matches</button><button class="button" role="tab" aria-controls="record-table" data-record="upsets" aria-pressed="false" aria-selected="false" tabindex="-1">Largest upsets</button><button class="button" role="tab" aria-controls="record-table" data-record="tournaments" aria-pressed="false" aria-selected="false" tabindex="-1">Best tournaments</button></div>
-        <div id="number-one-filters" class="toolbar record-filters" hidden>
-          <div class="field field-grow"><label for="number-one-team">Filter team</label><input id="number-one-team" type="search" placeholder="Brazil, Spain, Germany…" value="${escapeHTML(route.query.get("q") || "")}"></div>
-          <div class="field"><label for="number-one-from">From date</label><div class="date-combo"><input id="number-one-from" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/YYYY" value="${route.query.get("from") ? validDate(route.query.get("from")) : ""}" aria-describedby="number-one-from-error"><button class="button" type="button" id="number-one-from-button" aria-label="Open from-date calendar">Calendar</button><input id="number-one-from-calendar" class="native-date-proxy" type="date" min="1872-01-01" max="${summary.meta.results_through}" value="${escapeHTML(route.query.get("from") || "")}" tabindex="-1" aria-hidden="true"></div><span id="number-one-from-error" class="field-error" role="alert"></span></div>
-          <div class="field"><label for="number-one-to">To date</label><div class="date-combo"><input id="number-one-to" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/YYYY" value="${route.query.get("to") ? validDate(route.query.get("to")) : ""}" aria-describedby="number-one-to-error"><button class="button" type="button" id="number-one-to-button" aria-label="Open to-date calendar">Calendar</button><input id="number-one-to-calendar" class="native-date-proxy" type="date" min="1872-01-01" max="${summary.meta.results_through}" value="${escapeHTML(route.query.get("to") || "")}" tabindex="-1" aria-hidden="true"></div><span id="number-one-to-error" class="field-error" role="alert"></span></div>
-        </div>
-        <div id="best-tournament-filters" class="toolbar record-filters best-tournament-filters" hidden>
-          <div class="field">
-            <label for="best-tournament-team">Team</label>
-            <select id="best-tournament-team">
-              <option value="">Any team</option>
-              ${bestTournamentTeamOptions}
-            </select>
-          </div>
-          <div class="field field-grow">
-            <label for="best-tournament-competition">Competition</label>
-            <input id="best-tournament-competition" type="search" placeholder="World Cup, Copa América, Gold Cup…" value="${escapeHTML(route.query.get("competition") || "")}">
-          </div>
-        </div>
-        <div id="record-note" class="record-note"></div>
-        <div id="record-table" role="tabpanel" tabindex="0" aria-live="polite"></div>
-        <div class="pagination"><span id="record-count" class="muted small" aria-live="polite"></span><div class="pagination-actions"><button id="record-more" class="button">Show more</button><button id="record-all" class="button button-quiet">Show all</button></div></div>
-      </div>`;
-    let view = ["peaks", "numberones", "numberonesummary", "matches", "upsets", "tournaments"].includes(route.query.get("view")) ? route.query.get("view") : "peaks";
-    let shown = Math.max(25, Number(route.query.get("shown") || 25)) || 25;
-    const requestedTournamentTeam =
-      route.query.get("team") || "";
-    if (
-      bestTournamentTeams.some(
-        (team) => team.code === requestedTournamentTeam,
-      )
-    ) {
-      document.getElementById(
-        "best-tournament-team",
-      ).value = requestedTournamentTeam;
+      ).join("")
+    );
+    listTeam.value = choices.some(
+      (team) => team.code === preferredTeam,
+    )
+      ? preferredTeam
+      : "";
+
+    const competitions = recordCompetitions(source);
+    listCompetition.placeholder = (
+      shuffledExamples(competitions)
+      || "Competition…"
+    );
+    competitionSuggestions.innerHTML = competitions.map(
+      (competition) => (
+        `<option value="${escapeHTML(competition)}"></option>`
+      ),
+    ).join("");
+    if (!preserveCompetition) {
+      listCompetition.value = "";
     }
-    document.querySelectorAll("[data-record]").forEach((button) => {
+  };
+
+  const syncFilterVisibility = () => {
+    peakFilters.hidden = view !== "peaks";
+    numberOneFilters.hidden = view !== "numberones";
+    listFilters.hidden = !pairViews.has(view);
+  };
+
+  configureListFilters(
+    route.query.get("team") || "",
+    true,
+  );
+  syncFilterVisibility();
+
+  document.querySelectorAll("[data-record]").forEach(
+    (button) => {
       const active = button.dataset.record === view;
       button.setAttribute("aria-pressed", String(active));
       button.setAttribute("aria-selected", String(active));
       button.tabIndex = active ? 0 : -1;
       button.classList.toggle("button-dark", active);
-    });
+    },
+  );
 
-    const update = () => {
-      const sources = {
-        peaks: summary.peaks,
-        numberones: summary.number_ones || [],
-        numberonesummary: summary.number_one_summary || [],
-        matches: summary.top_matches,
-        upsets: summary.upsets,
-        tournaments: bestTournamentRows,
-      };
-      const filterBar = document.getElementById(
-        "number-one-filters",
-      );
-      const tournamentFilterBar = document.getElementById(
-        "best-tournament-filters",
-      );
-      const filtering = view === "numberones";
-      const tournamentFiltering = view === "tournaments";
-      filterBar.hidden = !filtering;
-      tournamentFilterBar.hidden = !tournamentFiltering;
+  const update = () => {
+    const peakQuery = foldSearch(
+      document.getElementById(
+        "peak-team-search",
+      ).value,
+    );
+    const numberOneQuery = foldSearch(
+      document.getElementById(
+        "number-one-team",
+      ).value,
+    );
+    const selectedTeam = listTeam.value;
+    const competitionQuery = foldSearch(
+      listCompetition.value,
+    );
+    const fromInput = document.getElementById(
+      "number-one-from",
+    );
+    const toInput = document.getElementById(
+      "number-one-to",
+    );
+    const from = inputDate(fromInput.value);
+    const to = inputDate(toInput.value);
+    const invalidRange = Boolean(
+      from && to && from > to,
+    );
+    const fromRangeMessage = (
+      "From date cannot be after To date."
+    );
+    const toRangeMessage = (
+      "To date cannot be before From date."
+    );
+    const fromError = document.getElementById(
+      "number-one-from-error",
+    );
+    const toError = document.getElementById(
+      "number-one-to-error",
+    );
 
-      const query = foldSearch(
-        document.getElementById("number-one-team").value,
-      );
-      const tournamentTeam = document
-        .getElementById("best-tournament-team")
-        .value;
-      const competitionQuery = document
-        .getElementById("best-tournament-competition")
-        .value.trim()
-        .toLocaleLowerCase();
+    if (invalidRange) {
+      fromError.textContent = fromRangeMessage;
+      toError.textContent = toRangeMessage;
+      fromInput.setAttribute("aria-invalid", "true");
+      toInput.setAttribute("aria-invalid", "true");
+    } else {
+      if (
+        fromError.textContent === fromRangeMessage
+      ) {
+        fromError.textContent = "";
+      }
+      if (toError.textContent === toRangeMessage) {
+        toError.textContent = "";
+      }
+      if (!fromError.textContent) {
+        fromInput.removeAttribute("aria-invalid");
+      }
+      if (!toError.textContent) {
+        toInput.removeAttribute("aria-invalid");
+      }
+    }
 
-      const fromInput = document.getElementById(
-        "number-one-from",
-      );
-      const toInput = document.getElementById(
-        "number-one-to",
-      );
-      const from = inputDate(fromInput.value);
-      const to = inputDate(toInput.value);
-      const invalidRange = Boolean(
-        from && to && from > to
-      );
-      const fromRangeMessage =
-        "From date cannot be after To date.";
-      const toRangeMessage =
-        "To date cannot be before From date.";
-      const fromError = document.getElementById(
-        "number-one-from-error",
-      );
-      const toError = document.getElementById(
-        "number-one-to-error",
-      );
+    document.getElementById(
+      "number-one-from-calendar",
+    ).max = to || summary.meta.results_through;
+    document.getElementById(
+      "number-one-to-calendar",
+    ).min = from || "1872-01-01";
 
-      if (invalidRange) {
-        fromError.textContent = fromRangeMessage;
-        toError.textContent = toRangeMessage;
-        fromInput.setAttribute("aria-invalid", "true");
-        toInput.setAttribute("aria-invalid", "true");
-      } else {
-        if (
-          fromError.textContent === fromRangeMessage
-        ) {
-          fromError.textContent = "";
-        }
-        if (toError.textContent === toRangeMessage) {
-          toError.textContent = "";
-        }
-        if (!fromError.textContent) {
-          fromInput.removeAttribute("aria-invalid");
-        }
-        if (!toError.textContent) {
-          toInput.removeAttribute("aria-invalid");
-        }
+    const source = sources[view].filter((row) => {
+      if (view === "peaks") {
+        return (
+          !peakQuery
+          || teamSearchText(
+            row.code,
+            row.nation,
+            row.historical_name,
+            row.display_nation,
+          ).includes(peakQuery)
+        );
       }
 
-      document.getElementById("number-one-from-calendar").max = to || summary.meta.results_through;
-      document.getElementById("number-one-to-calendar").min = from || "1872-01-01";
-
-      const source = sources[view].filter((row) => {
-        if (filtering) {
-          if (invalidRange) return false;
-          if (
-            query
-            && !teamSearchText(
-              row.code,
-              row.nation,
-            ).includes(query)
-          ) {
-            return false;
-          }
-          const end =
-            row.to || summary.meta.results_through;
-          if (from && end < from) return false;
-          if (to && row.from > to) return false;
-          return true;
+      if (view === "numberones") {
+        if (invalidRange) return false;
+        if (
+          numberOneQuery
+          && !teamSearchText(
+            row.code,
+            row.nation,
+          ).includes(numberOneQuery)
+        ) {
+          return false;
         }
-
-        if (tournamentFiltering) {
-          if (
-            tournamentTeam
-            && row.code !== tournamentTeam
-          ) {
-            return false;
-          }
-          if (
-            competitionQuery
-            && !row.tournament
-              .toLocaleLowerCase()
-              .includes(competitionQuery)
-          ) {
-            return false;
-          }
-        }
-
+        const end = (
+          row.to || summary.meta.results_through
+        );
+        if (from && end < from) return false;
+        if (to && row.from > to) return false;
         return true;
-      });
+      }
 
-      const visible = source.slice(0, shown);
-      document.getElementById(
-        "record-note",
-      ).innerHTML = view === "peaks"
-        ? `<strong>Peak</strong><div><b>One maximum per canonical team lineage.</b> Successor histories are joined; a strict improvement is required to replace the earlier peak.</div>`
-        : view === "numberones"
-          ? `<strong>No. 1</strong><div><b>Every spell as NFELO world number one.</b> Leadership is determined jointly after all results on each date. Historical names are retained, and every relevant result from the change date is shown.</div>`
-          : view === "numberonesummary"
-            ? `<strong>Total</strong><div><b>Number-one totals by canonical team lineage.</b> Successor histories are joined. Total days include every completed spell and the current spell through the latest results date.</div>`
-            : view === "matches"
-              ? `<strong>Score</strong><div><b>Every eligible match instance is ranked.</b> Q is the two breadth-adjusted means minus 1.645 times their joint standard error; repeat pairings are not deduplicated.</div>`
-              : view === "upsets"
-                ? `<strong>Change</strong><div><b>Decisive results ranked by rating movement.</b> Upset points are the average of the winner's rating gain and the loser's rating loss. The two values can differ because this network-adjusted model is not strictly zero-sum.</div>`
-                : `<strong>Gain</strong><div><b>Largest positive rating gains over one tournament edition.</b> Rating gain adds up the published rating movement from the edition's own matchdays, excluding annual recalibration and unrelated results.</div>`;
+      if (view === "matches" || view === "upsets") {
+        if (
+          selectedTeam
+          && row.code1 !== selectedTeam
+          && row.code2 !== selectedTeam
+        ) {
+          return false;
+        }
+        return (
+          !competitionQuery
+          || foldSearch(row.tournament).includes(
+            competitionQuery,
+          )
+        );
+      }
 
-      document.getElementById(
-        "record-table",
-      ).innerHTML = view === "peaks"
-        ? peakTable(visible)
-        : view === "numberones"
-          ? numberOneTable(visible)
-          : view === "numberonesummary"
-            ? numberOneSummaryTable(visible)
-            : view === "matches"
-              ? matchRecordTable(visible)
-              : view === "upsets"
-                ? upsetTable(visible)
-                : bestTournamentTable(visible);
+      if (view === "tournaments") {
+        if (
+          selectedTeam
+          && row.code !== selectedTeam
+        ) {
+          return false;
+        }
+        return (
+          !competitionQuery
+          || foldSearch(row.tournament).includes(
+            competitionQuery,
+          )
+        );
+      }
 
-      document.getElementById(
-        "record-count",
-      ).textContent = (
-        `Showing ${number(visible.length)} `
-        + `of ${number(source.length)}`
+      return true;
+    });
+
+    const visible = source.slice(0, shown);
+    document.getElementById(
+      "record-note",
+    ).innerHTML = view === "peaks"
+      ? `<strong>Peak</strong><div><b>One maximum per canonical team lineage.</b> A peak reached under a former name shows that historical name first; a peak reached under the current name lists relevant former lineage names afterward.</div>`
+      : view === "numberones"
+        ? `<strong>No. 1</strong><div><b>Every spell as NFELO world number one.</b> Leadership is determined jointly after all results on each date. Historical names are retained, and every relevant result from the change date is shown.</div>`
+        : view === "numberonesummary"
+          ? `<strong>Total</strong><div><b>Number-one totals use only names from actual No. 1 spells.</b> Germany includes West Germany; the Soviet Union total does not include post-Soviet Russia.</div>`
+          : view === "matches"
+            ? `<strong>Score</strong><div><b>Every eligible match instance is ranked.</b> Q is the two breadth-adjusted means minus 1.645 times their joint standard error; repeat pairings are not deduplicated.</div>`
+            : view === "upsets"
+              ? `<strong>Change</strong><div><b>Decisive results ranked by rating movement.</b> Upset points are the average of the winner's rating gain and the loser's rating loss.</div>`
+              : `<strong>Gain</strong><div><b>Largest positive rating gains over one tournament edition.</b> Rating gain includes only the edition's own matchdays.</div>`;
+
+    document.getElementById(
+      "record-table",
+    ).innerHTML = view === "peaks"
+      ? peakTable(visible)
+      : view === "numberones"
+        ? numberOneTable(visible)
+        : view === "numberonesummary"
+          ? numberOneSummaryTable(visible)
+          : view === "matches"
+            ? matchRecordTable(visible)
+            : view === "upsets"
+              ? upsetTable(visible)
+              : bestTournamentTable(visible);
+
+    document.getElementById(
+      "record-count",
+    ).textContent = (
+      `Showing ${number(visible.length)} `
+      + `of ${number(source.length)}`
+    );
+    document.getElementById(
+      "record-more",
+    ).hidden = shown >= source.length;
+    document.getElementById(
+      "record-all",
+    ).hidden = shown >= source.length;
+
+    replaceRouteQuery("records", {
+      view: view === "peaks" ? "" : view,
+      shown: shown > 25 ? shown : "",
+      peak: view === "peaks"
+        ? document.getElementById(
+          "peak-team-search",
+        ).value.trim()
+        : "",
+      q: view === "numberones"
+        ? document.getElementById(
+          "number-one-team",
+        ).value.trim()
+        : "",
+      from: (
+        view === "numberones" && !invalidRange
+          ? from
+          : ""
+      ),
+      to: (
+        view === "numberones" && !invalidRange
+          ? to
+          : ""
+      ),
+      team: pairViews.has(view)
+        ? selectedTeam
+        : "",
+      competition: pairViews.has(view)
+        ? listCompetition.value.trim()
+        : "",
+    });
+  };
+
+  document.getElementById(
+    "peak-team-search",
+  ).addEventListener("input", () => {
+    shown = 25;
+    update();
+  });
+  document.getElementById(
+    "number-one-team",
+  ).addEventListener("input", () => {
+    shown = 25;
+    update();
+  });
+  listTeam.addEventListener("change", () => {
+    shown = 25;
+    update();
+  });
+  listCompetition.addEventListener("input", () => {
+    shown = 25;
+    update();
+  });
+
+  const setupNumberOneDate = (prefix) => {
+    const input = document.getElementById(prefix);
+    const calendar = document.getElementById(
+      `${prefix}-calendar`,
+    );
+    const errorNode = document.getElementById(
+      `${prefix}-error`,
+    );
+    const refreshIfValid = () => {
+      input.value = formatHistoryDateInput(input.value);
+      const error = input.value
+        ? historyDateInputError(
+          input.value,
+          "1872-01-01",
+          summary.meta.results_through,
+        )
+        : "";
+      errorNode.textContent = error;
+      if (error) {
+        input.setAttribute("aria-invalid", "true");
+      } else {
+        input.removeAttribute("aria-invalid");
+      }
+      const complete = (
+        !input.value
+        || Boolean(inputDate(input.value))
       );
-      document.getElementById(
-        "record-more",
-      ).hidden = shown >= source.length;
-      document.getElementById(
-        "record-all",
-      ).hidden = shown >= source.length;
-
-      replaceRouteQuery("records", {
-        view: view === "peaks" ? "" : view,
-        shown: shown > 25 ? shown : "",
-        q: filtering
-          ? document
-            .getElementById("number-one-team")
-            .value.trim()
-          : "",
-        from: (
-          filtering && !invalidRange ? from : ""
-        ),
-        to: (
-          filtering && !invalidRange ? to : ""
-        ),
-        team: tournamentFiltering
-          ? tournamentTeam
-          : "",
-        competition: tournamentFiltering
-          ? document
-            .getElementById(
-              "best-tournament-competition",
-            )
-            .value.trim()
-          : "",
-      });
-    };
-    // Best tournament record filter listeners
-    document
-      .getElementById("best-tournament-team")
-        .addEventListener("change", () => {
-          shown = 25;
-          update();
-        });
-    document
-      .getElementById("best-tournament-competition")
-      .addEventListener("input", () => {
+      if (!error && complete) {
+        calendar.value = input.value
+          ? inputDate(input.value)
+          : "";
         shown = 25;
         update();
-      });
-    document.getElementById("number-one-team").addEventListener("input", () => {
-      shown = 25;
-      update();
-    });
-    const setupNumberOneDate = (prefix) => {
-      const input = document.getElementById(prefix);
-      const calendar = document.getElementById(`${prefix}-calendar`);
-      const errorNode = document.getElementById(`${prefix}-error`);
-      const refreshIfValid = () => {
-        input.value = formatHistoryDateInput(input.value);
-        const error = input.value
-          ? historyDateInputError(input.value, "1872-01-01", summary.meta.results_through)
-          : "";
-        errorNode.textContent = error;
-        if (error) input.setAttribute("aria-invalid", "true");
-        else input.removeAttribute("aria-invalid");
-        const complete = !input.value || Boolean(inputDate(input.value));
-        if (!error && complete) {
-          calendar.value = input.value ? inputDate(input.value) : "";
-          shown = 25;
-          update();
-        }
-      };
-      input.addEventListener("input", refreshIfValid);
-      input.addEventListener("keydown", (event) => {
-        if (event.key === "Backspace" && input.selectionStart === input.selectionEnd && [3, 6].includes(input.selectionStart)) {
-          event.preventDefault();
-          const position = input.selectionStart;
-          input.value = `${input.value.slice(0, position - 2)}${input.value.slice(position)}`;
-          refreshIfValid();
-          input.setSelectionRange(position - 2, position - 2);
-        }
-      });
-      document.getElementById(`${prefix}-button`).addEventListener("click", () => {
-        if (typeof calendar.showPicker === "function") calendar.showPicker();
-        else calendar.click();
-      });
-      calendar.addEventListener("change", () => {
-        input.value = calendar.value ? validDate(calendar.value) : "";
-        refreshIfValid();
-      });
+      }
     };
-    setupNumberOneDate("number-one-from");
-    setupNumberOneDate("number-one-to");
-    document.querySelectorAll("[data-record]").forEach((button) => button.addEventListener("click", () => {
+    input.addEventListener("input", refreshIfValid);
+    input.addEventListener("keydown", (event) => {
+      if (
+        event.key === "Backspace"
+        && input.selectionStart === input.selectionEnd
+        && [3, 6].includes(input.selectionStart)
+      ) {
+        event.preventDefault();
+        const position = input.selectionStart;
+        input.value = (
+          input.value.slice(0, position - 2)
+          + input.value.slice(position)
+        );
+        refreshIfValid();
+        input.setSelectionRange(
+          position - 2,
+          position - 2,
+        );
+      }
+    });
+    document.getElementById(
+      `${prefix}-button`,
+    ).addEventListener("click", () => {
+      if (
+        typeof calendar.showPicker === "function"
+      ) {
+        calendar.showPicker();
+      } else {
+        calendar.click();
+      }
+    });
+    calendar.addEventListener("change", () => {
+      input.value = calendar.value
+        ? validDate(calendar.value)
+        : "";
+      refreshIfValid();
+    });
+  };
+  setupNumberOneDate("number-one-from");
+  setupNumberOneDate("number-one-to");
+
+  document.querySelectorAll("[data-record]").forEach(
+    (button) => button.addEventListener("click", () => {
       view = button.dataset.record;
       shown = 25;
-      document.querySelectorAll("[data-record]").forEach((peer) => {
+      if (pairViews.has(view)) {
+        configureListFilters("", false);
+      }
+      syncFilterVisibility();
+      document.querySelectorAll(
+        "[data-record]",
+      ).forEach((peer) => {
         const active = peer === button;
-        peer.setAttribute("aria-pressed", String(active));
-        peer.setAttribute("aria-selected", String(active));
+        peer.setAttribute(
+          "aria-pressed",
+          String(active),
+        );
+        peer.setAttribute(
+          "aria-selected",
+          String(active),
+        );
         peer.tabIndex = active ? 0 : -1;
-        peer.classList.toggle("button-dark", active);
+        peer.classList.toggle(
+          "button-dark",
+          active,
+        );
       });
       update();
-    }));
-    // Records tab keyboard navigation
-      const recordTabs = [
-        ...document.querySelectorAll("[data-record]"),
-      ];
-      recordTabs.forEach((button, index) => {
-        button.addEventListener("keydown", (event) => {
-          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
-            return;
-          }
-          event.preventDefault();
-          const nextIndex = event.key === "Home"
-            ? 0
-            : event.key === "End"
-              ? recordTabs.length - 1
-              : (
-                index
-                + (event.key === "ArrowRight" ? 1 : -1)
-                + recordTabs.length
-              ) % recordTabs.length;
-          recordTabs[nextIndex].focus();
-          recordTabs[nextIndex].click();
-        });
-      });
-    document.getElementById("record-more").addEventListener("click", () => { shown += 25; update(); });
-    document.getElementById("record-all").addEventListener("click", () => {
-      shown = Number.MAX_SAFE_INTEGER;
-      update();
+    }),
+  );
+
+  const recordTabs = [
+    ...document.querySelectorAll("[data-record]"),
+  ];
+  recordTabs.forEach((button, index) => {
+    button.addEventListener("keydown", (event) => {
+      if (
+        ![
+          "ArrowLeft",
+          "ArrowRight",
+          "Home",
+          "End",
+        ].includes(event.key)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      const nextIndex = event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? recordTabs.length - 1
+          : (
+            index
+            + (
+              event.key === "ArrowRight"
+                ? 1
+                : -1
+            )
+            + recordTabs.length
+          ) % recordTabs.length;
+      recordTabs[nextIndex].focus();
+      recordTabs[nextIndex].click();
     });
+  });
+
+  document.getElementById(
+    "record-more",
+  ).addEventListener("click", () => {
+    shown += 25;
     update();
-  }
+  });
+  document.getElementById(
+    "record-all",
+  ).addEventListener("click", () => {
+    shown = Number.MAX_SAFE_INTEGER;
+    update();
+  });
+  update();
+}
 
   async function renderFixtures(route) {
     setTitle("Upcoming matches");

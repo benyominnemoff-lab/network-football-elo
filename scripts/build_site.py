@@ -134,6 +134,214 @@ def normalise_public_team_names(value: Any) -> Any:
     return public_team_name(value)
 
 
+SOVIET_PUBLIC_START = "1922-12-30"
+SOVIET_PUBLIC_END = "1991-12-26"
+
+MODEL_VERIFICATION_MATCH_KEYS = (
+    "id",
+    "date",
+    "year",
+    "a",
+    "b",
+    "sa",
+    "sb",
+    "tc",
+    "level",
+    "home",
+    "p",
+    "expected",
+    "pre_a",
+    "pre_b",
+    "post_a",
+    "post_b",
+    "impact_a",
+    "impact_b",
+    "combined",
+)
+
+
+def model_verification_fingerprint(output: Any) -> str:
+    # Hash model/source facts that public-label edits may not alter.
+    payload = {
+        "source_sha256": output.summary["meta"]["source_sha256"],
+        "state": output.state,
+        "matches": [
+            {
+                key: row.get(key)
+                for key in MODEL_VERIFICATION_MATCH_KEYS
+            }
+            for row in output.matches
+        ],
+    }
+    serialised = json.dumps(
+        compact(payload),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(
+        serialised.encode("utf-8")
+    ).hexdigest()
+
+
+def historical_public_team_name(
+    code: str | None,
+    value: Any,
+    day: str,
+) -> Any:
+    # Correct only public labels; never touch model/source identity.
+    name = public_team_name(value)
+    if (
+        isinstance(name, str)
+        and SOVIET_PUBLIC_START <= str(day) <= SOVIET_PUBLIC_END
+        and name in {"Russia", "Soviet Union"}
+        and code in {None, "RU"}
+    ):
+        return "Soviet Union"
+    return name
+
+
+def normalise_historical_public_names(output: Any) -> None:
+    # Make Soviet-era public labels date-correct after replay.
+    matches_by_id: dict[int, dict[str, Any]] = {}
+
+    for match in output.matches:
+        day = str(match["date"])
+        match["an"] = historical_public_team_name(
+            str(match["a"]),
+            match.get("an"),
+            day,
+        )
+        match["bn"] = historical_public_team_name(
+            str(match["b"]),
+            match.get("bn"),
+            day,
+        )
+        matches_by_id[int(match["id"])] = match
+
+    for code, page in output.team_pages.items():
+        for point in page.get("history", []):
+            day = str(point["date"])
+            match = matches_by_id.get(int(point["id"]))
+            if match is not None:
+                if code == match["a"]:
+                    point["historical_name"] = match["an"]
+                    point["opponent"] = match["bn"]
+                elif code == match["b"]:
+                    point["historical_name"] = match["bn"]
+                    point["opponent"] = match["an"]
+            else:
+                point["historical_name"] = (
+                    historical_public_team_name(
+                        code,
+                        point.get("historical_name"),
+                        day,
+                    )
+                )
+                point["opponent"] = (
+                    historical_public_team_name(
+                        None,
+                        point.get("opponent"),
+                        day,
+                    )
+                )
+
+        for row in page.get("matches", []):
+            match = matches_by_id.get(int(row["id"]))
+            if match is None:
+                day = str(row["date"])
+                row["team_name"] = historical_public_team_name(
+                    code,
+                    row.get("team_name"),
+                    day,
+                )
+                row["opponent"] = historical_public_team_name(
+                    row.get("opponent_code"),
+                    row.get("opponent"),
+                    day,
+                )
+                continue
+            if code == match["a"]:
+                row["team_name"] = match["an"]
+                row["opponent"] = match["bn"]
+            elif code == match["b"]:
+                row["team_name"] = match["bn"]
+                row["opponent"] = match["an"]
+
+    for peak in output.summary.get("peaks", []):
+        day = str(peak["date"])
+        peak["historical_name"] = historical_public_team_name(
+            str(peak["code"]),
+            peak.get("historical_name"),
+            day,
+        )
+        peak["opponent"] = historical_public_team_name(
+            None,
+            peak.get("opponent"),
+            day,
+        )
+
+    for collection in ("top_matches", "upsets"):
+        for row in output.summary.get(collection, []):
+            day = str(row["date"])
+            row["team1"] = historical_public_team_name(
+                str(row["code1"]),
+                row.get("team1"),
+                day,
+            )
+            row["team2"] = historical_public_team_name(
+                str(row["code2"]),
+                row.get("team2"),
+                day,
+            )
+            if "winner" in row:
+                row["winner"] = historical_public_team_name(
+                    None,
+                    row.get("winner"),
+                    day,
+                )
+            if "loser" in row:
+                row["loser"] = historical_public_team_name(
+                    None,
+                    row.get("loser"),
+                    day,
+                )
+
+
+def attach_lineage_names(output: Any) -> None:
+    # Attach only names genuinely used by each canonical lineage.
+    names: dict[str, set[str]] = {}
+    for match in output.matches:
+        for code_key, name_key in (
+            ("a", "an"),
+            ("b", "bn"),
+        ):
+            code = str(match.get(code_key, ""))
+            name = str(match.get(name_key, "")).strip()
+            if code and name:
+                names.setdefault(code, set()).add(name)
+
+    current_names = {
+        team["code"]: str(team["nation"])
+        for team in output.summary.get("teams", [])
+    }
+    for code, name in current_names.items():
+        names.setdefault(code, set()).add(name)
+
+    lineage_rows = {
+        code: sorted(
+            values,
+            key=lambda value: value.casefold(),
+        )
+        for code, values in names.items()
+    }
+    for collection in ("teams", "current"):
+        for team in output.summary.get(collection, []):
+            team["lineage_names"] = lineage_rows.get(
+                team["code"],
+                [team["nation"]],
+            )
+
 def attach_team_aliases(
     output: Any,
     source: Path,
@@ -1470,6 +1678,38 @@ def build_historical_rankings(data: Path, output: Any) -> None:
         key=lambda row: (-row["days"], row["first"], row["nation"]),
     )
 
+    names_at_number_one: dict[str, list[str]] = {}
+    for spell in number_ones:
+        code = spell["code"]
+        name = str(spell["nation"])
+        if name not in names_at_number_one.setdefault(code, []):
+            names_at_number_one[code].append(name)
+
+    for row in output.summary["number_one_summary"]:
+        spell_names = names_at_number_one.get(
+            row["code"],
+            [row["nation"]],
+        )
+        current_name = names[row["code"]]
+        if current_name in spell_names:
+            primary_name = current_name
+        else:
+            primary_name = spell_names[-1]
+        row["nation"] = primary_name
+        row["included_names"] = [
+            name
+            for name in spell_names
+            if name != primary_name
+        ]
+
+    output.summary["number_one_summary"].sort(
+        key=lambda row: (
+            -row["days"],
+            row["first"],
+            row["nation"],
+        )
+    )
+
     tournament_catalog = build_tournament_catalog(output.matches)
     output.summary["best_tournaments"] = build_best_tournament_records(
         tournament_catalog,
@@ -1490,10 +1730,18 @@ def build_historical_rankings(data: Path, output: Any) -> None:
 def main() -> None:
     args = parse_args()
     output = run_replay(args.source, args.config)
+    verification_before = model_verification_fingerprint(output)
+    normalise_historical_public_names(output)
     normalise_public_team_names(output.summary)
     normalise_public_team_names(output.team_pages)
     normalise_public_team_names(output.matches)
     attach_team_aliases(output, args.source)
+    attach_lineage_names(output)
+    verification_after = model_verification_fingerprint(output)
+    if verification_after != verification_before:
+        raise RuntimeError(
+            "Public label normalisation changed model verification data."
+        )
     data = args.output / "data"
     if data.exists():
         shutil.rmtree(data)

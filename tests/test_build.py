@@ -174,7 +174,7 @@ class StaticBuildTests(unittest.TestCase):
             )["matches"]
         }
         self.assertTrue(
-            historical_opponents.intersection({"USSR", "Czechoslovakia", "Yugoslavia"})
+            historical_opponents.intersection({"Soviet Union", "Czechoslovakia", "Yugoslavia"})
         )
 
     def test_probability_swap_invariance(self) -> None:
@@ -394,13 +394,13 @@ class StaticBuildTests(unittest.TestCase):
         self.assertIn('id="number-one-to" type="text"', javascript)
         self.assertIn('id="number-one-from-calendar"', javascript)
         self.assertIn('id="number-one-to-calendar"', javascript)
-        self.assertIn('const filtering = view === "numberones";', javascript)
+        self.assertIn('numberOneFilters.hidden = view !== "numberones";', javascript)
         self.assertNotIn('view === "numberones" || view === "numberonesummary"', javascript)
         self.assertIn("From date cannot be after To date.", javascript)
         self.assertIn("To date cannot be before From date.", javascript)
         self.assertIn("from > to", javascript)
-        self.assertIn('number-one-from-calendar").max', javascript)
-        self.assertIn('number-one-to-calendar").min', javascript)
+        self.assertIn('.max = to || summary.meta.results_through;', javascript)
+        self.assertIn('.min = from || "1872-01-01";', javascript)
 
     def test_historical_predictor_score_grid_and_rating_effects(self) -> None:
         javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
@@ -1005,7 +1005,15 @@ class StaticBuildTests(unittest.TestCase):
             javascript,
         )
         self.assertIn(
-            "(summary.best_tournaments || []).slice(0, 500)",
+            "const bestTournamentRows = (",
+            javascript,
+        )
+        self.assertIn(
+            "summary.best_tournaments || []",
+            javascript,
+        )
+        self.assertIn(
+            ").slice(0, 500);",
             javascript,
         )
         self.assertIn(
@@ -1051,11 +1059,12 @@ class StaticBuildTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         for phrase in (
-            "Explore nation peaks, No. 1 chronology and totals",
-            "const bestTournamentCurrentNames = new Map(",
-            "const bestTournamentAliases = new Map();",
-            "label: displayAliases.length",
-            "escapeHTML(team.label)",
+            "Explore team peaks, No. 1 chronology and totals",
+            'id="peak-team-search"',
+            'id="record-list-team"',
+            'id="record-list-competition"',
+            "currentFirstRecordLabel",
+            "peakRecordLabel",
             "What do the Tournaments and Best tournaments pages show?",
             "Current and historical rankings, tournament snapshots",
         ):
@@ -1258,6 +1267,159 @@ class StaticBuildTests(unittest.TestCase):
                 / "summary.json"
             ).read_text(encoding="utf-8"),
         )
+
+    def test_record_filters_labels_and_major_tournament_default(self) -> None:
+        javascript = (
+            ROOT / "public" / "assets" / "app.js"
+        ).read_text(encoding="utf-8")
+        builder = (
+            ROOT / "scripts" / "build_site.py"
+        ).read_text(encoding="utf-8")
+
+        for marker in (
+            'id="peak-team-search"',
+            'id="record-list-team"',
+            'id="record-list-competition"',
+            "recordTeamChoices",
+            "recordCompetitions",
+            "peakRecordLabel",
+            "shuffledExamples(competitions)",
+            "function defaultMajorTournamentFamily",
+            "MAJOR_TOURNAMENT_PRECEDENCE",
+            (
+                "teamLink(peak.code, "
+                "peak.display_nation || peak.nation)"
+            ),
+            (
+                "teamLink(row.code, "
+                "row.display_nation || row.nation)"
+            ),
+            (
+                "teamLink(row.code, "
+                "row.display_nation || row.nation, "
+                "row.after)"
+            ),
+        ):
+            self.assertIn(marker, javascript)
+
+        precedence = [
+            "FIFA World Cup",
+            "UEFA European Championship",
+            "Copa América",
+            "Africa Cup of Nations",
+            "AFC Asian Cup",
+            "CONCACAF Gold Cup",
+            "OFC Nations Cup",
+        ]
+        precedence_start = javascript.index(
+            "const MAJOR_TOURNAMENT_PRECEDENCE = ["
+        )
+        precedence_end = javascript.index(
+            "];",
+            precedence_start,
+        )
+        precedence_block = javascript[
+            precedence_start:precedence_end
+        ]
+        positions = [
+            precedence_block.index(f'"{name}"')
+            for name in precedence
+        ]
+        self.assertEqual(positions, sorted(positions))
+        self.assertEqual(
+            precedence_block.count('"'),
+            len(precedence) * 2,
+        )
+        self.assertIn(
+            "newestTime - candidate.time <= thirtyDays",
+            javascript,
+        )
+
+        for marker in (
+            "def model_verification_fingerprint",
+            "def normalise_historical_public_names",
+            "def attach_lineage_names",
+            'output.summary["number_one_summary"].sort(',
+            "Public label normalisation changed model verification data.",
+        ):
+            self.assertIn(marker, builder)
+
+        for decade in (1950, 1960, 1970, 1980):
+            payload = json.loads(
+                (
+                    self.data
+                    / "matches"
+                    / f"{decade}.json"
+                ).read_text(encoding="utf-8")
+            )
+            soviet_rows = [
+                row
+                for row in payload["matches"]
+                if row["a"] == "RU" or row["b"] == "RU"
+            ]
+            self.assertTrue(soviet_rows)
+            for row in soviet_rows:
+                if row["a"] == "RU":
+                    self.assertEqual(
+                        row["an"],
+                        "Soviet Union",
+                    )
+                if row["b"] == "RU":
+                    self.assertEqual(
+                        row["bn"],
+                        "Soviet Union",
+                    )
+
+            history = json.loads(
+                (
+                    self.data
+                    / "rankings-history"
+                    / f"{decade}.json"
+                ).read_text(encoding="utf-8")
+            )
+            russian_lineage_names = {
+                row["nation"]
+                for row in (
+                    history["opening"]
+                    + history["events"]
+                )
+                if row["code"] == "RU"
+            }
+            self.assertNotIn(
+                "Russia",
+                russian_lineage_names,
+            )
+            if russian_lineage_names:
+                self.assertEqual(
+                    russian_lineage_names,
+                    {"Soviet Union"},
+                )
+
+        number_one = {
+            row["code"]: row
+            for row in self.summary[
+                "number_one_summary"
+            ]
+        }
+        self.assertEqual(
+            number_one["RU"]["nation"],
+            "Soviet Union",
+        )
+        self.assertEqual(
+            number_one["RU"]["included_names"],
+            [],
+        )
+        self.assertEqual(
+            number_one["DE"]["nation"],
+            "Germany",
+        )
+        self.assertIn(
+            "West Germany",
+            number_one["DE"]["included_names"],
+        )
+
+        for team in self.summary["teams"]:
+            self.assertTrue(team["lineage_names"])
 
     def test_public_metadata_and_discovery_files(self) -> None:
         public = ROOT / "public"
