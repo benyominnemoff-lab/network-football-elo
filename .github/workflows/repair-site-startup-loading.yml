@@ -160,6 +160,49 @@ jobs:
                   "A non-null-safe navigation startup reference remains."
               )
 
+          # FAQ answers include generated validation figures. Build the array
+          # only after route() has loaded summary.json; evaluating it at script
+          # startup leaves every page stuck on the initial loading shell.
+          if "function buildFAQItems()" not in app:
+              app = replace_once(
+                  app,
+                  "const FAQ_ITEMS = [",
+                  "function buildFAQItems() {\n  return [",
+                  "FAQ array declaration",
+              )
+              app = replace_once(
+                  app,
+                  "\n];\n\nfunction faqSearchTokens",
+                  "\n  ];\n}\n\nfunction faqSearchTokens",
+                  "FAQ array closing",
+              )
+              app = replace_once(
+                  app,
+                  (
+                      '  const search = document.getElementById('\
+                      '"faq-search");\n\n'
+                  ),
+                  (
+                      '  const search = document.getElementById('\
+                      '"faq-search");\n'
+                      '  const faqItems = buildFAQItems();\n\n'
+                  ),
+                  "FAQ lazy-data initialization",
+              )
+              app = app.replace(
+                  "FAQ_ITEMS.filter",
+                  "faqItems.filter",
+              )
+              app = app.replace(
+                  "FAQ_ITEMS.length",
+                  "faqItems.length",
+              )
+
+          if "FAQ_ITEMS" in app:
+              raise RuntimeError(
+                  "A startup-time FAQ_ITEMS reference remains."
+              )
+
 
           app_source = re.search(
               r'<script src="(?P<src>assets/app\.js'
@@ -533,6 +576,8 @@ jobs:
               "window.__nfeloBoot.failed = true;",
               "nav?.querySelectorAll",
               'menuButton?.addEventListener("click"',
+              "function buildFAQItems()",
+              "const faqItems = buildFAQItems();",
           ]
           missing_app = [
               marker
@@ -660,6 +705,9 @@ jobs:
 
           grep -F \
             'window.__nfeloBoot.ready = true;' \
+            public/assets/app.js
+          grep -F \
+            'function buildFAQItems()' \
             public/assets/app.js
           grep -F \
             '__nfeloShowBootError' \
