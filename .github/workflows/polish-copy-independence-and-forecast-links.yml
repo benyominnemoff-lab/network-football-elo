@@ -1,4 +1,4 @@
-name: Polish copy and fix friendly forecasts v2
+name: Polish copy and fix friendly forecasts v3
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: polish-copy-independence-and-forecast-links-v2
+  group: polish-copy-independence-and-forecast-links-v3
   cancel-in-progress: false
 
 jobs:
@@ -939,9 +939,26 @@ jobs:
                       "probabilities = linkedMatch.p.map(Number)",
                       "date: fixture.date",
                       "maximumPredictionDate",
-                      "beforeDate ? event.date < dateValue",
                   ):
                       self.assertIn(phrase, javascript)
+
+                  # Formatting is intentionally multiline in app.js. Collapse
+                  # whitespace before checking the two start-of-day ternaries.
+                  normalized = " ".join(javascript.split())
+                  self.assertIn(
+                      (
+                          "beforeDate ? event.date < dateValue "
+                          ": event.date <= dateValue"
+                      ),
+                      normalized,
+                  )
+                  self.assertIn(
+                      (
+                          "beforeDate ? item.date < dateValue "
+                          ": item.date <= dateValue"
+                      ),
+                      normalized,
+                  )
                   self.assertNotIn(
                       "date: previousISODate(match.date)",
                       javascript,
@@ -1228,6 +1245,15 @@ jobs:
           assert "probabilities = linkedMatch.p.map(Number)" in app
           assert "date: fixture.date" in app
           assert "maximumPredictionDate" in app
+          normalized_app = " ".join(app.split())
+          assert (
+              "beforeDate ? event.date < dateValue "
+              ": event.date <= dateValue"
+          ) in normalized_app
+          assert (
+              "beforeDate ? item.date < dateValue "
+              ": item.date <= dateValue"
+          ) in normalized_app
 
           for phrase in (
               "Tournament class was subsequently separated",
