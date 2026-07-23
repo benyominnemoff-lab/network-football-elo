@@ -1,9 +1,9 @@
 {
-  "source_checked_at": "2026-07-22T16:51:32+00:00",
+  "source_checked_at": "2026-07-23T00:14:35+00:00",
   "mode": "multi-source open-results supplement",
   "base_snapshot_through": "2026-07-19",
   "supplemental_results": 0,
-  "upcoming_fixtures": 351,
+  "upcoming_fixtures": 353,
   "open_feed_rows": 49520,
   "unresolved_names": [],
   "base_urls": [
@@ -13,10 +13,10 @@
   "world_cup_results": 0,
   "sportsdb_fixture_events": 156,
   "sportsdb_requests": 6,
-  "wfe_fixture_rows": 195,
+  "wfe_fixture_rows": 197,
   "integrity": "All result and fixture sources passed schema, size, date, score, alias and conflict checks",
   "base_snapshot": {
-    "source_checked_at": "2026-07-22T16:51:31+00:00",
+    "source_checked_at": "2026-07-23T00:14:34+00:00",
     "mode": "rating-change detection",
     "world_teams": 244,
     "pages_checked": 0,
