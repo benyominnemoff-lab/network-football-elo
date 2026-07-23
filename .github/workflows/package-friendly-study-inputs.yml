@@ -1,4 +1,4 @@
-name: Package friendly-study inputs
+name: Package friendly-study inputs v2
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: package-friendly-study-inputs
+  group: package-friendly-study-inputs-v2
   cancel-in-progress: false
 
 jobs:
@@ -135,8 +135,21 @@ jobs:
             research/methodology-audit-2026-07-19/network_eval.cpp \
             -o "$bundle/evaluator/network_eval"
 
-          "$bundle/evaluator/network_eval" 2>&1 \
-            | grep -F "usage: network_eval MATCHES.tsv" >/dev/null
+          set +e
+          usage_output="$("$bundle/evaluator/network_eval" 2>&1)"
+          usage_status=$?
+          set -e
+
+          if [ "$usage_status" -eq 0 ]; then
+            echo "::error::Evaluator unexpectedly succeeded without a ledger."
+            exit 1
+          fi
+          if ! grep -F "usage: network_eval MATCHES.tsv" \
+            <<<"$usage_output" >/dev/null; then
+            echo "::error::Evaluator did not emit its expected usage message."
+            printf '%s\n' "$usage_output"
+            exit 1
+          fi
 
       - name: Copy reproducibility inputs
         shell: bash
