@@ -1,4 +1,4 @@
-name: Polish copy and fix friendly forecasts
+name: Polish copy and fix friendly forecasts v2
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: polish-copy-independence-and-forecast-links
+  group: polish-copy-independence-and-forecast-links-v2
   cancel-in-progress: false
 
 jobs:
@@ -500,14 +500,11 @@ jobs:
               r'''\n\s*\{\n\s*question: "What do the Tournaments and Best tournaments pages show\?",\n\s*answer: ".*?"\n\s*\},''',
               "",
           )
-          replace_once(
+          sub_once(
               app_path,
+              r'''(?m)^(?P<indent>[ \t]*)question: "Why are two different historical log-loss figures shown\?",\n(?P=indent)answer: "[^"\n]*"''',
               '''    question: "Why are two different historical log-loss figures shown?",
-              answer: "They answer different questions. The 0.8842 figure is the primary nested historical holdout, where choices were tested on later blocks. The lower retrospective figure replays final constants through past matches and is useful for comparing mechanics such as date batching and the probability gate, but it is not a second out-of-sample claim."
-          ''',
-              '''    question: "Why are two different historical log-loss figures shown?",
-              answer: "They answer different questions. The 0.8842 figure comes from a rolling historical holdout, where choices were tested on later periods. The lower figure is a retrospective replay of the published model through past matches. It checks the implementation, but it is not a second out-of-sample result."
-          ''',
+              answer: "They answer different questions. The 0.8842 figure comes from a rolling historical holdout, where choices were tested on later periods. The lower figure is a retrospective replay of the published model through past matches. It checks the implementation, but it is not a second out-of-sample result."''',
           )
           replace_all(
               app_path,
@@ -1008,6 +1005,28 @@ jobs:
               if forbidden in readme:
                   raise RuntimeError(f"Patch-note README copy remains: {forbidden}")
 
+          PY
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          patcher = Path(
+              "/tmp/polish-copy-and-forecasts.py"
+          ).read_text(encoding="utf-8")
+          compile(patcher, str(Path("/tmp/polish-copy-and-forecasts.py")), "exec")
+
+          app = Path("public/assets/app.js").read_text(encoding="utf-8")
+          pattern = (
+              r'(?m)^(?P<indent>[ \t]*)question: '
+              r'"Why are two different historical log-loss figures shown\?",\n'
+              r'(?P=indent)answer: "[^"\n]*"'
+          )
+          matches = re.findall(pattern, app)
+          if len(matches) != 1:
+              raise RuntimeError(
+                  "Expected exactly one historical log-loss FAQ item; "
+                  f"found {len(matches)}."
+              )
           PY
           python /tmp/polish-copy-and-forecasts.py
 
