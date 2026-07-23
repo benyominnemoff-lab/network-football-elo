@@ -113,7 +113,7 @@ covering 29,910 matches as competitive and 310 codes covering 2,573 matches as
 uncertain. Uncertain and unknown competitions are treated as competitive for
 rating updates. New codes with decisive official or friendly naming are
 classified automatically; ambiguous codes remain safely competitive and are
-listed by the audit workflow.
+listed by the standalone tournament-classification audit command.
 
 With that fixed classification, the full 52,312-match replay jointly refitted
 the friendly information ratio and the two network probability temperatures.

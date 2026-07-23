@@ -943,6 +943,9 @@ class NetworkEloReplay:
                     "drift_sd": DRIFT_SD,
                     "quality_scale": QUALITY_SCALE,
                     "friendly_information_ratio": FRIENDLY_INFORMATION_RATIO,
+                    "friendly_information_ratio_exact": (
+                        f"{FRIENDLY_INFORMATION_RATIO:.5f}"
+                    ),
                     "competition_information_ratios": [
                         FRIENDLY_INFORMATION_RATIO, 1, 1, 1, 1
                     ],
@@ -958,6 +961,10 @@ class NetworkEloReplay:
                 "forecast_temperature": {
                     "friendly": FRIENDLY_TEMPERATURE,
                     "competitive": COMPETITIVE_TEMPERATURE,
+                },
+                "forecast_temperature_exact": {
+                    "friendly": f"{FRIENDLY_TEMPERATURE:.12f}",
+                    "competitive": f"{COMPETITIVE_TEMPERATURE:.12f}",
                 },
                 "forecast_layer": self.forecast_layer.public_parameters(),
             },

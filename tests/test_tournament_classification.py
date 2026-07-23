@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 import sys
 import unittest
@@ -179,10 +180,118 @@ class PublicCopyTests(unittest.TestCase):
         )
         self.assertNotIn("63.901%", javascript)
         self.assertNotIn("0.63901", javascript)
-        self.assertNotIn("0.75185", javascript)
+        self.assertIn(
+            '${p.network.friendly_information_ratio_exact}',
+            javascript,
+        )
         self.assertIn(
             '<div class="formula">qₖ = '
             '${number(p.network.friendly_information_ratio, 5)}',
+            javascript,
+        )
+
+    def test_methodology_uses_exact_deployment_values(self) -> None:
+        summary = json.loads(
+            (ROOT / "public" / "data" / "summary.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            summary["parameters"]["network"]
+            ["friendly_information_ratio_exact"],
+            "0.75185",
+        )
+        self.assertEqual(
+            summary["parameters"]["forecast_temperature_exact"],
+            {
+                "friendly": "0.890607603114",
+                "competitive": "1.055837218250",
+            },
+        )
+
+    def test_friendly_events_are_absent_from_tournament_records(self) -> None:
+        registry = load_registry(
+            ROOT / "config" / "tournament_classification.json"
+        )
+        friendly_codes = {
+            code
+            for code, entry in registry["tournaments"].items()
+            if entry["operational_class"] == "friendly"
+        }
+        catalog = json.loads(
+            (
+                ROOT / "public" / "data" / "tournaments" / "index.json"
+            ).read_text(encoding="utf-8")
+        )
+        catalog_codes = {
+            code
+            for family in catalog["families"]
+            for code in family.get("source_codes", [])
+        }
+        self.assertFalse(friendly_codes & catalog_codes)
+        summary = json.loads(
+            (ROOT / "public" / "data" / "summary.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        family_ids = {
+            family["id"] for family in catalog["families"]
+        }
+        self.assertTrue(
+            all(
+                row["tournament_id"] in family_ids
+                for row in summary["best_tournaments"]
+            )
+        )
+
+    def test_current_number_one_days_include_today(self) -> None:
+        summary = json.loads(
+            (ROOT / "public" / "data" / "summary.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        current = next(
+            spell for spell in summary["number_ones"]
+            if spell["to"] is None
+        )
+        as_of = max(
+            date.today(),
+            date.fromisoformat(summary["meta"]["results_through"]),
+        )
+        expected = (
+            as_of - date.fromisoformat(current["from"])
+        ).days + 1
+        self.assertEqual(current["days"], expected)
+        total = next(
+            row for row in summary["number_one_summary"]
+            if row["code"] == current["code"]
+        )
+        self.assertEqual(total["latest"], as_of.isoformat())
+        self.assertEqual(
+            total["days"],
+            sum(
+                spell["days"]
+                for spell in summary["number_ones"]
+                if spell["code"] == current["code"]
+            ),
+        )
+
+    def test_public_class_tools_use_registry_flag(self) -> None:
+        javascript = (
+            ROOT / "public" / "assets" / "app.js"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            'if (cls === "friendly" && !match.friendly)',
+            javascript,
+        )
+        self.assertIn(
+            'if (cls === "competitive" && match.friendly)',
+            javascript,
+        )
+        self.assertNotIn("match.level !== 0", javascript)
+        self.assertNotIn("match.level === 0", javascript)
+        self.assertNotIn(
+            'fixture.tournament_code === "F"',
             javascript,
         )
 

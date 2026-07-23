@@ -457,8 +457,9 @@ class StaticBuildTests(unittest.TestCase):
             "retrospective replay",
             "Public rating and match forecast",
             "marginal posterior uncertainty",
-            "Why friendlies use 75.2%",
-            "number(p.network.friendly_information_ratio, 5)",
+            "Why friendlies use ${p.network.friendly_information_ratio_exact}",
+            "p.forecast_temperature_exact.friendly",
+            "p.forecast_temperature_exact.competitive",
         ):
             self.assertIn(phrase, javascript)
         self.assertIn("applyForecastLayer", javascript)
@@ -469,7 +470,10 @@ class StaticBuildTests(unittest.TestCase):
         )
         self.assertNotIn("63.901%", javascript)
         self.assertNotIn("0.63901", javascript)
-        self.assertNotIn("0.75185", javascript)
+        self.assertIn(
+            '${p.network.friendly_information_ratio_exact}',
+            javascript,
+        )
         self.assertIn(
             '<div class="formula">qₖ = '
             '${number(p.network.friendly_information_ratio, 5)}',

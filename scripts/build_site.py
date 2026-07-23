@@ -1803,10 +1803,15 @@ def build_historical_rankings(data: Path, output: Any) -> None:
                     "match": trigger_rows[0] if len(trigger_rows) == 1 else None,
                 })
 
+    number_one_as_of = max(
+        date.today(),
+        date.fromisoformat(last_date),
+    ).isoformat()
     for spell in number_ones:
-        effective_end = spell["to"] or last_date
+        effective_end = spell["to"] or number_one_as_of
         spell["days"] = (
-            date.fromisoformat(effective_end) - date.fromisoformat(spell["from"])
+            date.fromisoformat(effective_end)
+            - date.fromisoformat(spell["from"])
         ).days + 1
     output.summary["number_ones"] = list(reversed(number_ones))
     number_one_summary: dict[str, dict[str, Any]] = {}
@@ -1815,13 +1820,16 @@ def build_historical_rankings(data: Path, output: Any) -> None:
             "code": spell["code"],
             "nation": names[spell["code"]],
             "first": spell["from"],
-            "latest": spell["to"] or last_date,
+            "latest": spell["to"] or number_one_as_of,
             "current": False,
             "spells": 0,
             "days": 0,
         })
         row["first"] = min(row["first"], spell["from"])
-        row["latest"] = max(row["latest"], spell["to"] or last_date)
+        row["latest"] = max(
+            row["latest"],
+            spell["to"] or number_one_as_of,
+        )
         row["current"] = row["current"] or spell["to"] is None
         row["spells"] += 1
         row["days"] += spell["days"]

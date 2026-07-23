@@ -1511,8 +1511,8 @@ function defaultMajorTournamentFamily(families) {
       const query = foldSearch(document.getElementById("match-search").value);
       return rows.filter((match) => {
         if (team && match.a !== team && match.b !== team) return false;
-        if (cls === "friendly" && match.level !== 0) return false;
-        if (cls === "competitive" && match.level === 0) return false;
+        if (cls === "friendly" && !match.friendly) return false;
+        if (cls === "competitive" && match.friendly) return false;
         const matchSearch = foldSearch(
         [
           teamSearchText(
@@ -1526,7 +1526,7 @@ function defaultMajorTournamentFamily(families) {
             match.bc,
           ),
           match.t,
-          Number(match.level) === 0
+          match.friendly
             ? "friendly"
             : "competitive",
         ].join(" "),
@@ -1593,7 +1593,7 @@ function defaultMajorTournamentFamily(families) {
       second: match.b,
       venue: Number(match.home) || 0,
       matchClass: (
-        Number(match.level) === 0
+        match.friendly
           ? "friendly"
           : "competitive"
       ),
@@ -2388,7 +2388,7 @@ function renderRecords(route) {
       second: fixture.team2_code,
       venue: Number(fixture.home_sign) || 0,
       matchClass: (
-        fixture.tournament_code === "F"
+        fixture.friendly
           ? "friendly"
           : "competitive"
       ),
@@ -3153,7 +3153,7 @@ function renderFAQ() {
             <li><b>Estimate underlying strength.</b> Results connect teams through opponents and shared opponents. The model also records how uncertain those estimates are.</li>
             <li><b>Forecast the match.</b> Underlying strength, venue, football era and uncertainty produce an initial win/draw/loss forecast.</li>
             <li><b>Add scoring tendencies.</b> A hidden attack and defence layer asks whether each team has recently scored or conceded more than its strength alone would suggest. It refines the probabilities without overturning the network's most likely outcome.</li>
-            <li><b>Learn from the completed date.</b> Surprise and goal margin determine how informative each result is. An evidence-backed friendly contributes about 75.2% of the network information of a competitive match; unresolved events remain competitive, and all results on the date are learned together.</li>
+            <li><b>Learn from the completed date.</b> Surprise and goal margin determine how informative each result is. An evidence-backed friendly contributes exactly ${p.network.friendly_information_ratio_exact} times the network information of a competitive match; unresolved events remain competitive, and all results on the date are learned together.</li>
             <li><b>Publish the ranking.</b> The public rating starts from underlying strength but is reduced when opponent coverage is narrow or uncertainty is high. This keeps rankings and historical comparisons cautious.</li>
           </ol>
           <p><b>A higher public rating does not guarantee a higher match win probability.</b> The rating is the cautious ranking output; the forecast uses the fuller predictive state. The hidden attack and defence layer changes probabilities only and never changes rankings, peaks or rating movements.</p>
@@ -3173,7 +3173,7 @@ function renderFAQ() {
 
         <h2>3. Network W/D/L forecast</h2>
         <div class="formula">D = pD(y)·4E(1−E)<br>W = E−D/2<br>L = 1−E−D/2</div>
-        <p>This construction preserves <code>W + D/2 = E</code>. The strength difference here is the latent opponent-network difference, <b>not the difference between the two displayed ratings</b>. NFELO integrates W/D/L over <code>V = Σ₁₁+Σ₂₂−2Σ₁₂</code> with 11-point Gauss–Hermite quadrature, then raises the probabilities to power <b>${number(p.forecast_temperature.friendly, 4)}</b> for friendlies or <b>${number(p.forecast_temperature.competitive, 4)}</b> for competitive matches and renormalises.</p>
+        <p>This construction preserves <code>W + D/2 = E</code>. The strength difference here is the latent opponent-network difference, <b>not the difference between the two displayed ratings</b>. NFELO integrates W/D/L over <code>V = Σ₁₁+Σ₂₂−2Σ₁₂</code> with 11-point Gauss–Hermite quadrature, then raises the probabilities to power <b>${p.forecast_temperature_exact.friendly}</b> for friendlies or <b>${p.forecast_temperature_exact.competitive}</b> for competitive matches and renormalises.</p>
 
         <h2>4. Hidden attack and defence forecast</h2>
         <p>The probability-only layer tracks attack residual <code>Aᵢ</code> and defence residual <code>Dᵢ</code>. Its goal baseline uses the current and preceding ${number(f.goal_environment_years)} calendar years, with a ${number(f.goal_prior_matches)}-match prior at ${number(f.goal_prior_per_team, 2)} goals per team:</p>
@@ -3193,7 +3193,7 @@ function renderFAQ() {
 
         <h2>5. Goal margin and the joint date update</h2>
         <p>Goal margin is capped at seven and normalised against decisive scoring in the preceding 20 years. The information weights are draw <b>${number(p.goal_margin.draw, 3)}</b>, one goal <b>1.000</b>, two goals <b>${number(p.goal_margin.two, 3)}</b>, three goals <b>${number(p.goal_margin.three, 3)}</b>, and <b>${number(p.goal_margin.tail, 3)}</b> per further effective goal.</p>
-        <p>For each match <code>k</code> on a known date, define <code>xₖ=e₁−e₂</code> and <code>βₖ=a(y)ln(10)/400</code>. The class ratio is 75.2% for an evidence-backed friendly or 1 for a competitive or unresolved match. The exact deployed value and complete matchday update are:</p>
+        <p>For each match <code>k</code> on a known date, define <code>xₖ=e₁−e₂</code> and <code>βₖ=a(y)ln(10)/400</code>. The class ratio is exactly <b>${p.network.friendly_information_ratio_exact}</b> for an evidence-backed friendly or 1 for a competitive or unresolved match. The complete matchday update is:</p>
         <div class="formula">qₖ = ${number(p.network.friendly_information_ratio, 5)} (friendly) or 1 (competitive)<br>λₖ = ${number(p.network.quality_scale, 6)}G(mₖ)qₖ<br>cₖ = λₖβₖ²Eₖ(1−Eₖ)<br>gₖ = xₖλₖβₖ(Sₖ−Eₖ)<br>Σ′ = [Σ⁻¹ + Σₖ cₖxₖxₖᵀ]⁻¹<br>μ′ = μ + Σ′Σₖgₖ</div>
         <p>This is an assumed-density Gaussian update, not an exact Bayesian posterior for the displayed three-way likelihood. It is invariant to arbitrary within-date row order. The friendly multiplier reduces both gradient and curvature before the joint update; the resulting displayed point movement is therefore not a simple fixed percentage.</p>
 
@@ -3217,8 +3217,8 @@ function renderFAQ() {
         <div class="metric-grid"><div><span>Final layer log loss</span><strong>${number(replay.log_loss, 4)}</strong></div><div><span>Network-only log loss</span><strong>${number(replay.network_only_log_loss, 4)}</strong></div><div><span>Brier score</span><strong>${number(replay.brier, 4)}</strong></div><div><span>Top outcome correct</span><strong>${percent(replay.accuracy)}</strong></div></div>
         <p>This ${number(replay.matches)}-match diagnostic replays final constants through the past to the fixed ${validDate(replay.cutoff)} cutoff. It is useful for component comparisons, including date batching and the boundary gate, but it is <b>not</b> a nested out-of-sample estimate and must not be compared as if it were the same experiment as ${number(nested.log_loss, 4)}.</p>
 
-        <h3>Why friendlies use 75.2%</h3>
-        <p>Tournament importance and match class are separate. The registry marks only evidence-backed exhibitions and preparation events as friendly; every uncertain or unknown competition remains competitive for rating weight. A full ${number(52312)}-match replay jointly refitted the friendly ratio and the two network probability temperatures while scoring ${number(46801)} forecasts from 1960 through 11 July 2026. The resulting retrospective deployment value is 75.2%; the exact implementation constant appears only in the formula box above. This is a reproducible full-sample fit, not a claim of equivalent statistical certainty or a replacement for the nested historical holdout.</p>
+        <h3>Why friendlies use ${p.network.friendly_information_ratio_exact}</h3>
+        <p>Tournament importance and match class are separate. The registry marks only evidence-backed exhibitions and preparation events as friendly; every uncertain or unknown competition remains competitive for rating weight. A full ${number(52312)}-match replay jointly refitted the friendly ratio and the two network probability temperatures while scoring ${number(46801)} forecasts from 1960 through 11 July 2026. The deployed values are information ratio <b>${p.network.friendly_information_ratio_exact}</b>, friendly network temperature <b>${p.forecast_temperature_exact.friendly}</b> and competitive network temperature <b>${p.forecast_temperature_exact.competitive}</b>. This is a reproducible full-sample fit, not a claim of equivalent statistical certainty or a replacement for the nested historical holdout.</p>
 
         <h2>8. Reproducibility and limitations</h2>
         <p>The repository records a methodology version, source hash and first-published prospective forecast for every identified future fixture. Historical validation must be labelled as nested holdout, retrospective replay or prospective. Routine data refreshes rebuild history but do not refit the structural constants; annual probability calibration follows its declared prior-years-only rule.</p>
