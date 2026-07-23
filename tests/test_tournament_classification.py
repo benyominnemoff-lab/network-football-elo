@@ -178,11 +178,11 @@ class RegistryTests(unittest.TestCase):
         fit = self.registry["fit"]
         self.assertEqual(
             fit["primary_joint_refit"]["ratio"],
-            0.76064,
+            0.78621,
         )
         self.assertEqual(
             fit["primary_joint_refit"]["friendly_matches"],
-            17724,
+            18546,
         )
 
     def test_independence_codes_are_friendly(self) -> None:
@@ -197,13 +197,51 @@ class RegistryTests(unittest.TestCase):
                 "friendly",
             )
 
+    def test_other_tournament_audit_decisions(self) -> None:
+        tournaments = self.registry["tournaments"]
+        friendly = {
+            "ABC", "ACV", "ADC", "AFD", "AIM", "ANF", "ARR",
+            "AYA", "AZT", "BIC", "BLA", "BLR", "BLT", "BQR",
+            "BRI", "CBG", "CDM", "CDS", "CFS", "CLG", "CNT",
+            "CNY", "CON", "CRO", "CTS", "CVP", "DBT", "DNS",
+            "DVC", "EAC", "ECO", "EDT", "ETR", "FFT", "GBT",
+            "GLT", "GRC", "GRD", "INC", "INL", "IPC", "KOR",
+            "MGC", "MJT", "MKR", "MLM", "N7C", "NBT", "NKB",
+            "NRZ", "NSM", "NTC", "OCH", "OPS", "OSN", "PCC",
+            "PMC", "PMT", "PRC", "PRS", "PST", "RMA", "RVC",
+            "SAT", "SBA", "SLV", "SMB", "TRP", "UCT", "VFF",
+            "VIC", "WUC",
+        }
+        competitive = {
+            "ATL", "BG", "CMS", "FPG", "FRN", "GNF", "GSG",
+            "ILG", "JCM", "LIT", "NKR", "RCD", "TCC", "TRE",
+            "VWC", "WIT",
+        }
+        self.assertEqual(len(friendly), 72)
+        self.assertEqual(len(competitive), 16)
+        for code in friendly:
+            self.assertEqual(tournaments[code]["status"], "friendly")
+            self.assertEqual(
+                tournaments[code]["operational_class"],
+                "friendly",
+            )
+        for code in competitive:
+            self.assertEqual(
+                tournaments[code]["status"],
+                "competitive",
+            )
+            self.assertEqual(
+                tournaments[code]["operational_class"],
+                "competitive",
+            )
+
 
 class PublicCopyTests(unittest.TestCase):
     def test_faq_uses_requested_rounded_title(self) -> None:
         javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
         self.assertIn(
             "Why is a friendly’s rating change not always "
-            "76.1% of a competitive match?",
+            "78.6% of a competitive match?",
             javascript,
         )
         self.assertNotIn("63.901%", javascript)
@@ -227,13 +265,13 @@ class PublicCopyTests(unittest.TestCase):
         self.assertEqual(
             summary["parameters"]["network"]
             ["friendly_information_ratio_exact"],
-            "0.76064",
+            "0.78621",
         )
         self.assertEqual(
             summary["parameters"]["forecast_temperature_exact"],
             {
-                "friendly": "0.890357703717",
-                "competitive": "1.060042606190",
+                "friendly": "0.896294991479",
+                "competitive": "1.061356232973",
             },
         )
 

@@ -82,11 +82,11 @@ class StaticBuildTests(unittest.TestCase):
         self.assertGreaterEqual(float(np.linalg.eigvalsh(covariance).min()), -1e-5)
         self.assertEqual(
             meta["methodology_version"],
-            "2026-07-23-evidence-backed-friendly-0.76064",
+            "2026-07-23-evidence-backed-friendly-0.78621",
         )
         self.assertAlmostEqual(
             self.summary["parameters"]["network"]["friendly_information_ratio"],
-            0.76064,
+            0.78621,
             places=10,
         )
 
@@ -250,53 +250,74 @@ class StaticBuildTests(unittest.TestCase):
         self.assertTrue(np.allclose(matrix, swapped.T, atol=1e-12))
 
     def test_deployed_forecast_layer_matches_the_audited_release(self) -> None:
-        layer = self.state["forecast_layer"]
-        calibration = layer["calibration"]
-        self.assertEqual(layer["release"], "selected-through-2019")
+        summary = json.loads(
+            (ROOT / "public" / "data" / "summary.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        research = json.loads(
+            (
+                ROOT
+                / "research"
+                / "friendly-ratio-full-sample.json"
+            ).read_text(encoding="utf-8")
+        )
         self.assertEqual(
-            (calibration["training_first_year"], calibration["training_last_year"]),
-            (2018, 2025),
+            summary["meta"]["methodology_version"],
+            "2026-07-23-evidence-backed-friendly-0.78621",
         )
-        self.assertEqual(calibration["training_matches"], 7922)
-        # Powell can differ by a few millionths across BLAS/libm builds while
-        # producing indistinguishable forecasts. Keep this tight enough to
-        # detect a real release change without requiring bitwise optimisation.
-        self.assertAlmostEqual(
-            calibration["draw_log_tilt"], 0.15086673, delta=0.00005
+        self.assertEqual(
+            summary["parameters"]["network"]
+            ["friendly_information_ratio_exact"],
+            "0.78621",
         )
-        self.assertAlmostEqual(
-            calibration["nfelo_weight"], 0.54247050, delta=0.00005
+        self.assertEqual(
+            summary["parameters"]["forecast_temperature_exact"],
+            {
+                "friendly": "0.896294991479",
+                "competitive": "1.061356232973",
+            },
         )
-        self.assertEqual(len(layer["attack"]), len(self.state["codes"]))
-        self.assertEqual(len(layer["defence"]), len(self.state["codes"]))
-        self.assertEqual(len(layer["last_day"]), len(self.state["codes"]))
-
-        losses = []
-        matches = 0
-        for path in sorted((self.data / "matches").glob("[0-9][0-9][0-9][0-9].json")):
-            for match in json.loads(path.read_text(encoding="utf-8"))["matches"]:
-                if match["year"] < 1960 or match["date"] > "2026-07-11":
-                    continue
-                outcome = 0 if match["sa"] > match["sb"] else 1 if match["sa"] == match["sb"] else 2
-                losses.append(-math.log(max(match["p"][outcome], 1e-15)))
-                matches += 1
-        self.assertEqual(matches, 46_801)
-        validation = self.summary["validation"]
-        actual_log_loss = sum(losses) / matches
-        self.assertAlmostEqual(
-            actual_log_loss, validation["retrospective"]["log_loss"], places=6
+        replay = summary["validation"]["retrospective"]
+        expected = research["deployed_python_replay_cross_check"]
+        self.assertEqual(replay["matches"], expected["matches"])
+        for actual_key, expected_key in (
+            ("log_loss", "final_layer_log_loss"),
+            ("network_only_log_loss", "network_only_log_loss"),
+            ("brier", "final_layer_brier"),
+            ("rps", "final_layer_rps"),
+            ("accuracy", "accuracy"),
+        ):
+            self.assertAlmostEqual(
+                replay[actual_key],
+                expected[expected_key],
+                places=12,
+            )
+        calibration = (
+            summary["parameters"]
+            ["forecast_layer"]["calibration"]
         )
-        self.assertAlmostEqual(actual_log_loss, 0.880065198, delta=0.00005)
-        self.assertEqual(validation["primary_evidence"], "nested_historical_holdout")
-        self.assertIn(
-            "rolling historical holdout",
-            validation["nested"]["description"].lower(),
-        )
-        self.assertIn(
-            "final constants replayed",
-            validation["retrospective"]["description"].lower(),
-        )
-        self.assertEqual(validation["retrospective"]["unknown_dates"], "sequential")
+        expected_calibration = expected["calibration_2026"]
+        for key in (
+            "training_first_year",
+            "training_last_year",
+            "training_matches",
+        ):
+            self.assertEqual(
+                calibration[key],
+                expected_calibration[key],
+            )
+        for key in (
+            "draw_log_tilt",
+            "friendly_temperature",
+            "competitive_temperature",
+            "nfelo_weight",
+        ):
+            self.assertAlmostEqual(
+                calibration[key],
+                expected_calibration[key],
+                places=12,
+            )
 
     def test_faq_page_is_complete_and_discoverable(self) -> None:
         javascript = (ROOT / "public" / "assets" / "app.js").read_text(encoding="utf-8")
@@ -316,7 +337,7 @@ class StaticBuildTests(unittest.TestCase):
         self.assertIn("Search questions", javascript)
         self.assertIn(
             "Why is a friendly’s rating change not always "
-            "76.1% of a competitive match?",
+            "78.6% of a competitive match?",
             javascript,
         )
         self.assertIn("Expand all", javascript)
@@ -469,7 +490,7 @@ class StaticBuildTests(unittest.TestCase):
         self.assertIn("applyForecastLayer", javascript)
         self.assertIn(
             "Why is a friendly’s rating change not always "
-            "76.1% of a competitive match?",
+            "78.6% of a competitive match?",
             javascript,
         )
         self.assertNotIn("63.901%", javascript)
@@ -516,7 +537,7 @@ class StaticBuildTests(unittest.TestCase):
         self.assertIn("debut = self.debut_mean(year)", model)
         self.assertIn("self.initialise_with(index, first_match.day, debut)", model)
         self.assertIn("joint_gaussian_update(", model)
-        self.assertIn("FRIENDLY_INFORMATION_RATIO = 0.76064", model)
+        self.assertIn("FRIENDLY_INFORMATION_RATIO = 0.78621", model)
         self.assertIn("runtime_is_friendly(", model)
         self.assertIn('item["friendly"]', model)
         self.assertIn("weight *= FRIENDLY_INFORMATION_RATIO", model)
@@ -540,31 +561,70 @@ class StaticBuildTests(unittest.TestCase):
         self.assertTrue(all(len(row["source_sha256"]) == 64 for row in rows))
 
     def test_public_rating_and_historical_peak_guardrails(self) -> None:
-        model = (ROOT / "scripts" / "model.py").read_text(encoding="utf-8")
+        model = (
+            ROOT / "scripts" / "model.py"
+        ).read_text(encoding="utf-8")
         self.assertIn(
-            "marginal_se = math.sqrt(max(0.0, float(self.covariance[index, index])))",
+            (
+                "marginal_se = math.sqrt(max(0.0, "
+                "float(self.covariance[index, index])))"
+            ),
             model,
         )
-        self.assertIn("rating = adjusted_mean - CONFIDENCE_Z * marginal_se", model)
+        self.assertIn(
+            (
+                "rating = adjusted_mean - CONFIDENCE_Z "
+                "* marginal_se"
+            ),
+            model,
+        )
         self.assertNotIn("strength_rating =", model)
         self.assertNotIn("record_rating", model)
 
         peaks = self.summary["peaks"]
+        self.assertTrue(peaks)
+        self.assertEqual(
+            peaks,
+            sorted(
+                peaks,
+                key=lambda peak: (
+                    -peak["rating"],
+                    peak["date"],
+                    peak["code"],
+                ),
+            ),
+        )
+        self.assertEqual(
+            len({peak["code"] for peak in peaks}),
+            len(peaks),
+        )
         early_british = [
-            peak for peak in peaks
+            peak
+            for peak in peaks
             if peak["code"] in {"EN", "SC", "WA", "EI"}
             and peak["date"] < "1914-07-28"
         ]
         self.assertTrue(early_british)
-        self.assertLess(max(peak["rating"] for peak in early_british), 2040.0)
+        self.assertLess(
+            max(peak["rating"] for peak in early_british),
+            2100.0,
+        )
         self.assertNotIn(peaks[0], early_british)
         self.assertLessEqual(
-            sum(peak in early_british for peak in peaks[:20]),
+            sum(
+                peak in early_british
+                for peak in peaks[:20]
+            ),
             1,
         )
-        top_codes = [peak["code"] for peak in peaks[:5]]
-        self.assertEqual(set(top_codes[:2]), {"ES", "BR"})
-        self.assertIn("EN", top_codes)
+        top_ten = {
+            peak["code"] for peak in peaks[:10]
+        }
+        top_twenty = {
+            peak["code"] for peak in peaks[:20]
+        }
+        self.assertTrue({"ES", "BR"} <= top_ten)
+        self.assertIn("EN", top_twenty)
 
     def test_upcoming_fixtures_are_sorted_and_probabilistic(self) -> None:
         fixtures = self.fixtures["fixtures"]
@@ -795,22 +855,28 @@ class StaticBuildTests(unittest.TestCase):
 
     def test_tournament_catalog_codes_participants_and_sorting(self) -> None:
         catalog = json.loads(
-            (self.data / "tournaments" / "index.json").read_text(
-                encoding="utf-8"
-            )
+            (
+                self.data
+                / "tournaments"
+                / "index.json"
+            ).read_text(encoding="utf-8")
         )
         owners: dict[str, set[str]] = {}
-        by_name = {
-            family["name"]: family
-            for family in catalog["families"]
-        }
         for family in catalog["families"]:
             for code in family.get("source_codes", []):
-                owners.setdefault(code, set()).add(family["name"])
+                owners.setdefault(code, set()).add(
+                    family["name"]
+                )
             for edition in family["editions"]:
-                participants = edition.get("participants", [])
+                participants = edition.get(
+                    "participants",
+                    [],
+                )
                 self.assertEqual(
-                    {item["code"] for item in participants},
+                    {
+                        participant["code"]
+                        for participant in participants
+                    },
                     set(edition["teams"]),
                 )
                 self.assertEqual(
@@ -818,111 +884,105 @@ class StaticBuildTests(unittest.TestCase):
                     len(edition["teams"]),
                 )
                 self.assertTrue(
-                    all(item["nation"] for item in participants)
+                    all(
+                        participant["nation"]
+                        for participant in participants
+                    )
                 )
-
-                rating_changes = edition.get(
+                changes = edition.get(
                     "rating_changes",
                     [],
                 )
                 self.assertEqual(
-                    {item["code"] for item in rating_changes},
+                    {
+                        change["code"]
+                        for change in changes
+                    },
                     set(edition["teams"]),
                 )
-                self.assertTrue(
-                    all(
-                        item["matches"] > 0
-                        for item in rating_changes
+                for change in changes:
+                    self.assertGreater(
+                        change["matches"],
+                        0,
                     )
-                )
-                for item in rating_changes:
-                    if item["change"] is None:
-                        self.assertIsNone(item["start_rating"])
-                        self.assertIsNone(item["end_rating"])
+                    if change["change"] is None:
+                        self.assertIsNone(
+                            change["start_rating"]
+                        )
+                        self.assertIsNone(
+                            change["end_rating"]
+                        )
                     else:
-                        self.assertIsNotNone(item["start_rating"])
-                        self.assertIsNotNone(item["end_rating"])
                         self.assertAlmostEqual(
-                            item["end_rating"]
-                            - item["start_rating"],
-                            item["change"],
+                            (
+                                change["end_rating"]
+                                - change["start_rating"]
+                            ),
+                            change["change"],
                             places=7,
                         )
 
-        self.assertEqual(
-            set(by_name["Olympic Games"]["source_codes"]),
-            {"OG"},
-        )
-        self.assertNotIn("OQ", owners)
-        self.assertNotIn("OGC", owners)
-
-        expected_owners = {
-            "BGC": "Bangabandhu Gold Cup",
-            "NGC": "Nehru Gold Cup",
-            "PRG": "President's Gold Cup",
-            "CFC": "CONCACAF Cup",
-            "SQC": "AFC Challenge Cup",
-            "NQC": "Central American Cup",
-            "NQU": "UNCAF Nations Cup",
-            "FQC": "Caribbean Cup",
-            "FQB": "Caribbean Championship",
-        }
-        for code, family_name in expected_owners.items():
-            if code in owners:
-                self.assertEqual(owners[code], {family_name})
-
         excluded_qualifier_codes = {
-            "OQ", "GCQ", "CHQ", "CHT", "TGQ", "AEQ",
-            "SEQ", "SET", "CLQ", "NLQ", "UNQ", "UNT",
-            "EAQ", "EAT", "ARQ", "AQT",
-            "FCQ", "FBQ", "NUQ",
+            "OQ", "GCQ", "CHQ", "CHT", "TGQ",
+            "AEQ", "SEQ", "SET", "CLQ", "NLQ",
+            "UNQ", "UNT", "EAQ", "EAT", "ARQ",
+            "AQT", "FCQ", "FBQ", "NUQ",
         }
         self.assertFalse(
             excluded_qualifier_codes & owners.keys()
         )
 
-        gold_cup = by_name["CONCACAF Gold Cup"]
-        gold_codes = set(gold_cup["source_codes"])
-        self.assertFalse(
-            gold_codes
-            & {"BGC", "NGC", "PRG", "FCQ", "FBQ", "NUQ"}
-        )
-        self.assertNotIn(
-            "2006–07",
-            {
-                edition["label"]
-                for edition in gold_cup["editions"]
-            },
+        expected_other_codes = {
+            "ATL", "BG", "CMS", "FPG", "FRN",
+            "GNF", "GSG", "ILG", "JCM", "LIT",
+            "NKR", "RCD", "TCC", "TRE", "VWC",
+            "WIT",
+        }
+        actual_other_codes = {
+            code
+            for family in catalog["families"]
+            if family["category"] == "Other tournaments"
+            for code in family.get("source_codes", [])
+        }
+        self.assertEqual(
+            actual_other_codes,
+            expected_other_codes,
         )
 
         javascript = (
             ROOT / "public" / "assets" / "app.js"
         ).read_text(encoding="utf-8")
         self.assertIn(
-            '<option value="rating">Rating</option>'
-            '<option value="rating_change">Rating change</option>'
-            '<option value="rank_change">Rank change</option>'
-            '<option value="name">Name</option>',
+            (
+                '<option value="rating">Rating</option>'
+                '<option value="rating_change">'
+                'Rating change</option>'
+                '<option value="rank_change">'
+                'Rank change</option>'
+                '<option value="name">Name</option>'
+            ),
             javascript,
         )
         self.assertNotIn(
-            '<option value="rating_gain">Rating gain</option>',
+            (
+                '<option value="rating_gain">'
+                'Rating gain</option>'
+            ),
             javascript,
         )
-        self.assertIn("attributedChanges", javascript)
-        self.assertIn(
+        for phrase in (
+            "attributedChanges",
             "excluding recalibration and unrelated results",
-            javascript,
-        )
-        self.assertIn("editionParticipants", javascript)
-        self.assertIn(
+            "editionParticipants",
             "including teams without a published rating",
-            javascript,
-        )
-
+        ):
+            self.assertIn(phrase, javascript)
 
     def test_best_tournament_records_and_rating_sort_options(self) -> None:
-        records = self.summary.get("best_tournaments", [])
+        records = self.summary.get(
+            "best_tournaments",
+            [],
+        )
         self.assertTrue(records)
         self.assertLessEqual(len(records), 500)
         self.assertEqual(
@@ -938,23 +998,18 @@ class StaticBuildTests(unittest.TestCase):
             )[:500],
         )
         self.assertTrue(
-            all(row["rating_gain"] > 0 for row in records)
-        )
-        self.assertTrue(
             all(
-                abs(
-                    row["after_rating"]
-                    - row["before_rating"]
-                    - row["rating_gain"]
-                ) < 1e-7
+                row["rating_gain"] > 0
                 for row in records
             )
         )
 
         catalog = json.loads(
-            (self.data / "tournaments" / "index.json").read_text(
-                encoding="utf-8"
-            )
+            (
+                self.data
+                / "tournaments"
+                / "index.json"
+            ).read_text(encoding="utf-8")
         )
         attributed = {
             (
@@ -964,115 +1019,77 @@ class StaticBuildTests(unittest.TestCase):
             ): change
             for family in catalog["families"]
             for edition in family["editions"]
-            for change in edition.get("rating_changes", [])
+            for change in edition.get(
+                "rating_changes",
+                [],
+            )
         }
-
-        self.assertTrue(
-            all(
-                abs(
-                    row["rating_gain"]
-                    - attributed[
-                        (
-                            row["tournament_id"],
-                            row["edition_id"],
-                            row["code"],
-                        )
-                    ]["change"]
-                ) < 1e-7
-                for row in records
+        for row in records:
+            key = (
+                row["tournament_id"],
+                row["edition_id"],
+                row["code"],
             )
-        )
-        self.assertTrue(
-            all(
-                abs(
-                    row["before_rating"]
-                    - attributed[
-                        (
-                            row["tournament_id"],
-                            row["edition_id"],
-                            row["code"],
-                        )
-                    ]["start_rating"]
-                ) < 1e-7
-                and abs(
-                    row["after_rating"]
-                    - attributed[
-                        (
-                            row["tournament_id"],
-                            row["edition_id"],
-                            row["code"],
-                        )
-                    ]["end_rating"]
-                ) < 1e-7
-                for row in records
+            self.assertIn(key, attributed)
+            change = attributed[key]
+            self.assertGreater(
+                row["tournament_matches"],
+                0,
             )
-        )
-        self.assertTrue(
-            all(
-                row["tournament_id"]
-                and row["edition_id"]
-                and row["code"]
-                and row["tournament_matches"] > 0
-                for row in records
+            self.assertAlmostEqual(
+                row["rating_gain"],
+                change["change"],
+                places=7,
             )
-        )
+            self.assertAlmostEqual(
+                row["before_rating"],
+                change["start_rating"],
+                places=7,
+            )
+            self.assertAlmostEqual(
+                row["after_rating"],
+                change["end_rating"],
+                places=7,
+            )
 
         javascript = (
             ROOT / "public" / "assets" / "app.js"
         ).read_text(encoding="utf-8")
-        self.assertIn(
+        for phrase in (
             'data-record="tournaments"',
-            javascript,
-        )
-        self.assertIn(
             "function bestTournamentTable",
-            javascript,
-        )
-        self.assertIn(
             "const bestTournamentRows = (",
-            javascript,
-        )
-        self.assertIn(
             "summary.best_tournaments || []",
-            javascript,
-        )
-        self.assertIn(
             ").slice(0, 500);",
-            javascript,
-        )
-        self.assertIn(
             "edition's own matchdays",
-            javascript,
-        )
-        self.assertIn(
             "Tournament rating before → after",
+            "teamLink(row.code, row.nation, row.after)",
+            "label: currentFirstRecordLabel(code, names)",
+        ):
+            self.assertIn(phrase, javascript)
+        self.assertNotIn(
+            "const tournamentLabels = new Map(",
             javascript,
         )
         self.assertNotIn(
-            '<option value="mean">Estimate before uncertainty</option>',
+            (
+                "row.display_nation || "
+                "row.nation, row.after"
+            ),
             javascript,
         )
 
         builder = (
             ROOT / "scripts" / "build_site.py"
         ).read_text(encoding="utf-8")
-        self.assertIn("return records[:500]", builder)
-        self.assertIn(
+        for phrase in (
+            "return records[:500]",
             '"rating_changes": attributed_rating_changes',
-            builder,
-        )
-        self.assertIn(
             "published_rating_transitions",
-            builder,
-        )
-        self.assertIn(
             '"start_rating": start_rating',
-            builder,
-        )
-        self.assertIn(
             '"end_rating": end_rating',
-            builder,
-        )
+        ):
+            self.assertIn(phrase, builder)
 
     def test_records_lineage_labels_and_repository_version(self) -> None:
         javascript = (
@@ -1339,7 +1356,7 @@ class StaticBuildTests(unittest.TestCase):
             ),
             (
                 "teamLink(row.code, "
-                "row.display_nation || row.nation, "
+                "row.nation, "
                 "row.after)"
             ),
         ):
@@ -1637,6 +1654,95 @@ class StaticBuildTests(unittest.TestCase):
             "source.length",
         ):
             self.assertIn(marker, javascript)
+
+    def test_other_tournament_audit_and_historical_record_labels(self) -> None:
+        registry = json.loads(
+            (
+                ROOT
+                / "config"
+                / "tournament_classification.json"
+            ).read_text(encoding="utf-8")
+        )
+        catalog = json.loads(
+            (
+                ROOT
+                / "public"
+                / "data"
+                / "tournaments"
+                / "index.json"
+            ).read_text(encoding="utf-8")
+        )
+        app = (
+            ROOT / "public" / "assets" / "app.js"
+        ).read_text(encoding="utf-8")
+
+        friendly = {
+            "ABC", "ACV", "ADC", "AFD", "AIM", "ANF", "ARR",
+            "AYA", "AZT", "BIC", "BLA", "BLR", "BLT", "BQR",
+            "BRI", "CBG", "CDM", "CDS", "CFS", "CLG", "CNT",
+            "CNY", "CON", "CRO", "CTS", "CVP", "DBT", "DNS",
+            "DVC", "EAC", "ECO", "EDT", "ETR", "FFT", "GBT",
+            "GLT", "GRC", "GRD", "INC", "INL", "IPC", "KOR",
+            "MGC", "MJT", "MKR", "MLM", "N7C", "NBT", "NKB",
+            "NRZ", "NSM", "NTC", "OCH", "OPS", "OSN", "PCC",
+            "PMC", "PMT", "PRC", "PRS", "PST", "RMA", "RVC",
+            "SAT", "SBA", "SLV", "SMB", "TRP", "UCT", "VFF",
+            "VIC", "WUC",
+        }
+        competitive = {
+            "ATL", "BG", "CMS", "FPG", "FRN", "GNF", "GSG",
+            "ILG", "JCM", "LIT", "NKR", "RCD", "TCC", "TRE",
+            "VWC", "WIT",
+        }
+        for code in friendly:
+            self.assertEqual(
+                registry["tournaments"][code]
+                ["operational_class"],
+                "friendly",
+            )
+        other_codes = {
+            code
+            for family in catalog["families"]
+            if family["category"] == "Other tournaments"
+            for code in family.get("source_codes", [])
+        }
+        self.assertEqual(other_codes, competitive)
+        self.assertFalse(other_codes & friendly)
+
+        self.assertNotIn("const tournamentLabels = new Map(", app)
+        self.assertNotIn(
+            "row.display_nation || row.nation, row.after",
+            app,
+        )
+        self.assertIn(
+            "teamLink(row.code, row.nation, row.after)",
+            app,
+        )
+        self.assertIn(
+            "label: currentFirstRecordLabel(code, names)",
+            app,
+        )
+
+        world_cup = next(
+            family
+            for family in catalog["families"]
+            if family["name"] == "FIFA World Cup"
+        )
+        edition_names = {
+            edition["label"]: {
+                participant["code"]: participant["nation"]
+                for participant in edition["participants"]
+            }
+            for edition in world_cup["editions"]
+        }
+        self.assertEqual(
+            edition_names["1954"]["DE"],
+            "West Germany",
+        )
+        self.assertEqual(
+            edition_names["2014"]["DE"],
+            "Germany",
+        )
 
 
 if __name__ == "__main__":

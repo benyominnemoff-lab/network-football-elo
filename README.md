@@ -15,15 +15,20 @@ evidence-adjusted network rating. A hidden attack/defence state refines match
 probabilities only; it never changes ratings, ranking order, peaks or points
 gained from results.
 
-**Current methodology version:** `2026-07-23-evidence-backed-friendly-0.76064`.
+**Current methodology version:** `2026-07-23-evidence-backed-friendly-0.78621`.
 
-Tournament snapshots use the same published rating immediately before and after each completed edition. Tournament rating change and Best tournaments include only published movement from that edition's matchdays, excluding annual recalibration and unrelated results. Successor lineages are grouped under the current canonical name while historical tournament names remain visible as aliases.
+Tournament snapshots use the same published rating immediately before and
+after each completed edition. Tournament rating change and Best tournaments
+include only published movement from that edition’s matchdays, excluding annual
+recalibration and unrelated results. Tables use the team name active during the
+edition; selectors use joined lineage labels so successor names remain easy to
+find.
 
 The rating state is a full-covariance dynamic Gaussian opponent network. The
 base-10 Elo expectation remains the observation link, while the model also
 represents uncertainty shared through common opponents, era-specific home and
 draw conditions, an active-pool debut prior and goal-margin information.
-Competitive and unresolved results use information ratio 1.00; evidence-backed friendlies use 0.76064.
+Competitive and unresolved results use information ratio 1.00; evidence-backed friendlies use 0.78621.
 
 Every match with a complete shared date is forecast from one frozen start-of-day
 state. Same-date debutants receive the same pre-date pool prior, and all results
@@ -76,9 +81,9 @@ outcome. The exact-score table is then raked so its win, draw and loss regions
 sum to the displayed final probabilities; omitted scorelines above 5–5 remain
 in the reported tail mass.
 
-The 0.76064 friendly multiplier applies to the opponent-network update before
+The 0.78621 friendly multiplier applies to the opponent-network update before
 the joint matchday calculation. It scales both gradient and curvature, so a
-friendly's displayed point movement is not mechanically 76.1% of an otherwise
+friendly's displayed point movement is not mechanically 78.6% of an otherwise
 similar competitive match.
 
 ## Chronology and publication safeguards
@@ -100,26 +105,31 @@ calculation rather than appearing as a competing public table.
 
 ## Tournament classification and friendly information
 
-Tournament importance and match class are separate. The historical registry
-contains 116 friendly codes covering 20,688 matches, 236 competitive codes
-covering 29,910 matches and 308 uncertain codes covering 1,714 matches.
-Uncertain and unknown competitions use the competitive information weight.
+Tournament importance and match class are separate. The maintained registry
+contains 188 friendly codes covering 21,529 matches, 239 competitive codes
+covering 30,165 matches and 233 uncertain codes covering 618 matches. Uncertain
+and unknown competitions use the competitive information weight.
 
-The friendly class includes the source's Independence Tournament and Merdeka
-Tournament codes. The underlying series appear in RSSSF's international
-friendly-tournament archive, and the AFC categorises the modern Merdeka
-Tournament under International Friendlies.
+Every family previously placed in the fallback Other tournaments category has
+been reviewed. Seventy-two source codes represent invitationals, preparation
+events or friendly series; sixteen represent formal regional, federation or
+multi-sport competitions. Friendly families are excluded from both Tournaments
+and Best tournaments.
 
 Under this classification, the full 52,312-match replay jointly fitted:
 
-- friendly information ratio `0.76064`;
-- friendly network temperature `0.890357703717`; and
-- competitive network temperature `1.060042606190`.
+- friendly information ratio `0.78621`;
+- friendly network temperature `0.896294991479`; and
+- competitive network temperature `1.061356232973`.
 
 The scoring period contains 46,801 forecasts from 1960 through 11 July 2026,
-including 17,724 friendlies. The network-only log-loss minimum is
-`0.881383694951`. These are reproducible full-sample constants for the fixed
-ledger and objective, not claims of equivalent population precision.
+including 18,546 friendlies. The network-only log-loss minimum is
+`0.881475145850`. At the previous ratio of `0.76064`, with both temperatures
+refitted under the same classification, it is `0.881478166958`.
+
+These are reproducible full-sample constants for the fixed ledger and
+objective, not claims of equivalent population precision. Classification
+evidence, future results and prospective scoring can move the preferred value.
 
 ## Validation: two different evidence classes
 

@@ -1660,7 +1660,7 @@ function defaultMajorTournamentFamily(families) {
         const tournamentURL = `#/tournaments?tournament=${encodeURIComponent(row.tournament_id)}&edition=${encodeURIComponent(row.edition_id)}&view=after`;
         return `<tr>
           <td class="rank-cell numeric">${index + 1}</td>
-          <td>${teamLink(row.code, row.display_nation || row.nation, row.after)}</td>
+          <td>${teamLink(row.code, row.nation, row.after)}</td>
           <td><a class="team-link" href="${tournamentURL}">${escapeHTML(row.tournament)}</a></td>
           <td class="hide-mobile">${escapeHTML(row.edition)}</td>
           <td class="numeric"><span class="rating-main movement-up">+${rating(row.rating_gain)}</span></td>
@@ -1787,19 +1787,6 @@ function renderRecords(route) {
         .filter(Boolean),
     ),
   ].sort((first, second) => first.localeCompare(second));
-
-  const tournamentLabels = new Map(
-    recordTeamChoices(
-      bestTournamentRows,
-      "tournaments",
-    ).map((team) => [team.code, team.label]),
-  );
-  bestTournamentRows.forEach((row) => {
-    row.display_nation = (
-      tournamentLabels.get(row.code)
-      || row.nation
-    );
-  });
 
   const peakPlaceholder = (
     shuffledExamples(
@@ -3054,11 +3041,11 @@ function buildFAQItems() {
   },
   {
     question: "Does NFELO use different K-factors for friendlies, qualifiers and tournaments?",
-    answer: "Not in the traditional Elo sense. Competitive and unresolved matches use the full information weight. Evidence-backed friendlies use about 76.1% of that weight. Friendly and competitive forecasts also have separate probability calibration."
+    answer: "Not in the traditional Elo sense. Competitive and unresolved matches use the full information weight. Evidence-backed friendlies use about 78.6% of that weight. Friendly and competitive forecasts also have separate probability calibration."
   },
   {
-    question: "Why is a friendly’s rating change not always 76.1% of a competitive match?",
-    answer: "The 76.1% value scales the information entering the opponent-network update; it is not applied to the final displayed points. Opponent strength, surprise, winning margin, uncertainty and every other result on the same date are considered together, so the displayed movement is not a fixed percentage. Friendlies also have their own probability calibration."
+    question: "Why is a friendly’s rating change not always 78.6% of a competitive match?",
+    answer: "The 78.6% value scales the information entering the opponent-network update; it is not applied to the final displayed points. Opponent strength, surprise, winning margin, uncertainty and every other result on the same date are considered together, so the displayed movement is not a fixed percentage. Friendlies also have their own probability calibration."
   },
   {
     question: "How is home advantage handled?",

@@ -1,26 +1,26 @@
 {
   "fit": {
     "comparison_previous_deployed_ratio": {
-      "accuracy": 0.591162581996,
-      "brier": 0.518762723619,
-      "competitive_temperature": 1.06003938124,
-      "friendly_temperature": 0.890335396628,
-      "log_loss": 0.881384414078,
+      "accuracy": 0.5909702784128544,
+      "brier": 0.5188171887932028,
+      "competitive_temperature": 1.0614100830809954,
+      "friendly_temperature": 0.8963104790698693,
+      "log_loss": 0.8814781669580547,
       "matches": 46801,
-      "ratio": 0.75185,
-      "rps": 0.172599228728
+      "ratio": 0.76064,
+      "rps": 0.17261990129958893
     },
     "complete_ledger_matches": 52312,
     "primary_joint_refit": {
-      "accuracy": 0.591098480802,
-      "brier": 0.518758489316,
-      "competitive_temperature": 1.06004260619,
-      "friendly_matches": 17724,
-      "friendly_temperature": 0.890357703717,
-      "log_loss": 0.881383694951,
+      "accuracy": 0.5909916454776607,
+      "brier": 0.5188039782621054,
+      "competitive_temperature": 1.061356232973167,
+      "friendly_matches": 18546,
+      "friendly_temperature": 0.8962949914792213,
+      "log_loss": 0.8814751458501191,
       "matches": 46801,
-      "ratio": 0.76064,
-      "rps": 0.172597463088
+      "ratio": 0.78621,
+      "rps": 0.17261426245485592
     },
     "scoring_period": {
       "first_year": 1960,
@@ -29,7 +29,7 @@
     "state_initialisation_uses_pre_1960_matches": true
   },
   "generated_from_commit": "13eaaa3ceb57c5d5f0a0bb2fe262a4e929d62fd2",
-  "methodology_version": "2026-07-23-evidence-backed-friendly-0.76064",
+  "methodology_version": "2026-07-23-evidence-backed-friendly-0.78621",
   "policy": {
     "date_or_edition_overrides_supported": true,
     "friendly_requires_positive_evidence": true,
@@ -115,16 +115,19 @@
         "ABC Tournament",
         "ABC Tourn"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 5,
       "name": "ABC Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "ABS": {
       "aliases": [
@@ -322,32 +325,38 @@
         "Civilizations Cup",
         "A Civ Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 2,
       "name": "Ancient Civilizations Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "ADC": {
       "aliases": [
         "Adidas Challenge",
         "Adidas Chlg"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 3,
       "name": "Adidas Challenge",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "ADI": {
       "aliases": [
@@ -439,16 +448,19 @@
         "A Forces Day T",
         "A Forces Day"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 2,
       "name": "Armed Forces Day Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "AFF": {
       "aliases": [
@@ -595,16 +607,19 @@
         "Airmarine Cup",
         "Airmarine C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "AFC: Airmarine Cup friendly tournament",
+        "source_url": "https://www.the-afc.com/en/national/fifa_world_cup/news/oman_hold_nerves_to_clinch_2019_airmarine_cup.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Airmarine Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "AKC": {
       "aliases": [
@@ -742,16 +757,19 @@
       "aliases": [
         "ANFA Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 5,
       "name": "ANFA Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "ANN": {
       "aliases": [
@@ -1004,16 +1022,19 @@
         "Art River Tourn",
         "Art River T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 9,
       "name": "Great Artificial River Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "ART": {
       "aliases": [
@@ -1169,16 +1190,16 @@
       "aliases": [
         "Atlantic Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
+      "confidence": "high",
       "evidence": {},
-      "evidence_type": "unresolved",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 9,
       "name": "Atlantic Cup",
-      "official_structure": false,
+      "official_structure": true,
       "operational_class": "competitive",
       "overrides": [],
-      "status": "uncertain"
+      "status": "competitive"
     },
     "ATN": {
       "aliases": [
@@ -1263,16 +1284,19 @@
         "AYA Bank Cup",
         "AYA Bank C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "AYA Bank Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "AZK": {
       "aliases": [
@@ -1297,16 +1321,19 @@
         "Azteca 2000 Tourn",
         "Azteca 2000 T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 2,
       "name": "Azteca 2000 Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "BAC": {
       "aliases": [
@@ -1493,10 +1520,10 @@
         "Bolivarian Games",
         "Bolivar Games"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
       "confidence": "high",
       "evidence": {},
-      "evidence_type": "explicit_official_structure",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 16,
       "name": "Bolivarian Games",
       "official_structure": true,
@@ -1563,16 +1590,19 @@
         "Bicentennial Cup",
         "Bicentennial C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 3,
       "name": "Bicentennial Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "BJG": {
       "aliases": [
@@ -1622,16 +1652,19 @@
         "African Ram Tourn",
         "African Ram T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 8,
       "name": "African Ram Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "BLC": {
       "aliases": [
@@ -1668,32 +1701,38 @@
         "Blair Trophy",
         "Blair Tr"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 3,
       "name": "Blair Trophy",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "BLT": {
       "aliases": [
         "Baltic Tournament",
         "Baltic Tourn"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Baltic Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "BLW": {
       "aliases": [
@@ -1748,16 +1787,19 @@
         "Boqueron Cup",
         "Boqueron C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Boqueron Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "BQS": {
       "aliases": [
@@ -1798,18 +1840,19 @@
         "Independence Cup",
         "Indep Cup"
       ],
-      "basis": "WFER level 2-4 without friendly evidence",
-      "confidence": "medium",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
       "evidence": {
-        "secondary_exact_title": "independence cup 2009 surinam"
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
       },
-      "evidence_type": "source_importance_level",
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 37,
       "name": "Independence Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "competitive"
+      "status": "friendly"
     },
     "BRT": {
       "aliases": [
@@ -2088,16 +2131,19 @@
       "aliases": [
         "Carlsberg Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 21,
       "name": "Carlsberg Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "CBN": {
       "aliases": [
@@ -2376,32 +2422,38 @@
         "Mexico City Cup",
         "Mexico City C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 8,
       "name": "Mexico City Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "CDS": {
       "aliases": [
         "Canadian Shield",
         "Canadian Sh"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Canadian Shield",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "CDT": {
       "aliases": [
@@ -2580,16 +2632,19 @@
         "CONCACAF Ser",
         "CONCACAF S"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "Concacaf: Concacaf Friendly Series",
+        "source_url": "https://www.concacaf.com/news/concacaf-anuncia-el-calendario-de-marzo-de-la-concacaf-series"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 35,
       "name": "CONCACAF Series",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "CFU": {
       "aliases": [
@@ -2848,18 +2903,19 @@
         "Challenge Cup",
         "Challenge C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
       "evidence": {
-        "secondary_exact_title": "challenge cup 1991 england"
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
       },
-      "evidence_type": "secondary_exact_title",
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 5,
       "name": "Challenge Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "CLM": {
       "aliases": [
@@ -2997,16 +3053,16 @@
       "aliases": [
         "COMESA Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
+      "confidence": "high",
       "evidence": {},
-      "evidence_type": "unresolved",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 3,
       "name": "COMESA Cup",
-      "official_structure": false,
+      "official_structure": true,
       "operational_class": "competitive",
       "overrides": [],
-      "status": "uncertain"
+      "status": "competitive"
     },
     "CMZ": {
       "aliases": [
@@ -3098,16 +3154,19 @@
         "Centenary Tourn",
         "Centenary T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 3,
       "name": "Centenary Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "CNU": {
       "aliases": [
@@ -3131,16 +3190,19 @@
         "Centenary Cup",
         "Centenary C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 9,
       "name": "Centenary Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "COC": {
       "aliases": [
@@ -3179,16 +3241,19 @@
         "Cup of Nations",
         "C of Nations"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 6,
       "name": "Cup of Nations",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "COQ": {
       "aliases": [
@@ -3345,16 +3410,19 @@
       "aliases": [
         "Cairo Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 3,
       "name": "Cairo Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "CRP": {
       "aliases": [
@@ -3518,16 +3586,19 @@
         "Continents Tourn",
         "Continents T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Continents Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "CU": {
       "aliases": [
@@ -3607,16 +3678,19 @@
         "Valparaiso City C",
         "Valparaiso C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 6,
       "name": "Valparaiso City Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "CWY": {
       "aliases": [
@@ -3675,16 +3749,19 @@
         "Djamila Bouhired T",
         "Dj Bouhired T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Djamila Bouhired Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "DCS": {
       "aliases": [
@@ -3827,16 +3904,19 @@
       "aliases": [
         "Dynasty Cup"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
       "confidence": "high",
-      "evidence": {},
-      "evidence_type": "explicit_official_structure",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 22,
       "name": "Dynasty Cup",
-      "official_structure": true,
-      "operational_class": "competitive",
+      "official_structure": false,
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "competitive"
+      "status": "friendly"
     },
     "DNT": {
       "aliases": [
@@ -3860,16 +3940,19 @@
         "Duvalier Cup",
         "Duvalier C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 15,
       "name": "Duvalier Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "E": {
       "aliases": [
@@ -3915,16 +3998,19 @@
         "East African Cup",
         "E African Cup"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
       "confidence": "high",
-      "evidence": {},
-      "evidence_type": "explicit_official_structure",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 15,
       "name": "East African Friendship Cup",
-      "official_structure": true,
-      "operational_class": "competitive",
+      "official_structure": false,
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "competitive"
+      "status": "friendly"
     },
     "EAF": {
       "aliases": [
@@ -4147,16 +4233,19 @@
       "aliases": [
         "ECO Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 8,
       "name": "ECO Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "ECT": {
       "aliases": [
@@ -4198,16 +4287,19 @@
         "Evacuation Day T",
         "Evac Day T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 13,
       "name": "Evacuation Day Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "EE": {
       "aliases": [
@@ -4563,16 +4655,19 @@
         "Easter Tournament",
         "Easter Tourn"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 2,
       "name": "Easter Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "EVE": {
       "aliases": [
@@ -4787,16 +4882,19 @@
         "Frantz Fanon T",
         "Fr Fanon T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 2,
       "name": "Frantz Fanon Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "FMC": {
       "aliases": [
@@ -4820,10 +4918,10 @@
         "Francophone Games",
         "Franc Games"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
       "confidence": "high",
       "evidence": {},
-      "evidence_type": "explicit_official_structure",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 5,
       "name": "Francophone Games",
       "official_structure": true,
@@ -5024,16 +5122,19 @@
         "Fr Territory Cup",
         "Fr Terr Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "FFF: Coupe de l’Outre-Mer competition",
+        "source_url": "https://www.fff.fr/competition/engagement/383387-coupe-de-l-outre-mer/phase/1/index.html"
+      },
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 42,
       "name": "French Territory Cup",
-      "official_structure": false,
+      "official_structure": true,
       "operational_class": "competitive",
       "overrides": [],
-      "status": "uncertain"
+      "status": "competitive"
     },
     "FRT": {
       "aliases": [
@@ -5113,16 +5214,19 @@
         "Gov Brons Trophy",
         "Gov Brons Tr"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 5,
       "name": "Governor Brons Trophy",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "GCC": {
       "aliases": [
@@ -5257,48 +5361,54 @@
         "Great Leader C",
         "Gr Leader C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 19,
       "name": "Great Leader Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "GNF": {
       "aliases": [
         "GANEFO Tournament",
         "GANEFO Tourn"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
+      "confidence": "high",
       "evidence": {},
-      "evidence_type": "unresolved",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 41,
       "name": "GANEFO Tournament",
-      "official_structure": false,
+      "official_structure": true,
       "operational_class": "competitive",
       "overrides": [],
-      "status": "uncertain"
+      "status": "competitive"
     },
     "GRC": {
       "aliases": [
         "Gabon Radio Cup",
         "Radio Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Gabon Radio Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "GRD": {
       "aliases": [
@@ -5308,16 +5418,19 @@
         "Garuda Series",
         "Garuda Ser"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
       "confidence": "high",
-      "evidence": {},
-      "evidence_type": "explicit_official_structure",
+      "evidence": {
+        "source_label": "Indonesia Ministry: Garuda Championship Series FIFA Matchday preparation",
+        "source_url": "https://www.kemenpora.go.id/detail/6587/garuda-championship-series-2026-jadi-ajang-pemanasan-timnas-indonesia-jelang-piala-dunia"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 3,
       "name": "Garuda Championship Series",
-      "official_structure": true,
-      "operational_class": "competitive",
+      "official_structure": false,
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "competitive"
+      "status": "friendly"
     },
     "GRN": {
       "aliases": [
@@ -5358,10 +5471,10 @@
       "aliases": [
         "Gossage Cup"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
       "confidence": "high",
       "evidence": {},
-      "evidence_type": "explicit_official_structure",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 119,
       "name": "Gossage Cup",
       "official_structure": true,
@@ -5643,10 +5756,10 @@
       "aliases": [
         "Islamic Games"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
       "confidence": "high",
       "evidence": {},
-      "evidence_type": "explicit_official_structure",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 11,
       "name": "Islamic Games",
       "official_structure": true,
@@ -5659,16 +5772,19 @@
         "International Cup",
         "Intl Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 7,
       "name": "International Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "IND": {
       "aliases": [
@@ -5712,16 +5828,19 @@
         "Intercont Cup",
         "Intercont C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 24,
       "name": "Intercontinental Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "IOC": {
       "aliases": [
@@ -5780,18 +5899,19 @@
         "Independence Cup",
         "Indep Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
       "evidence": {
-        "secondary_exact_title": "independence cup 2009 surinam"
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
       },
-      "evidence_type": "secondary_exact_title",
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 53,
       "name": "Independence Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "IPF": {
       "aliases": [
@@ -5872,10 +5992,10 @@
         "Fr Commonw Games",
         "Fr Commw Games"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
       "confidence": "high",
       "evidence": {},
-      "evidence_type": "explicit_official_structure",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 10,
       "name": "French Commonwealth Games",
       "official_structure": true,
@@ -6126,16 +6246,19 @@
       "aliases": [
         "Korea Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 17,
       "name": "Korea Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "KPC": {
       "aliases": [
@@ -6436,16 +6559,16 @@
         "Leeward Isl T",
         "Leeward I T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
+      "confidence": "high",
       "evidence": {},
-      "evidence_type": "unresolved",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 21,
       "name": "Leeward Islands Tournament",
-      "official_structure": false,
+      "official_structure": true,
       "operational_class": "competitive",
       "overrides": [],
-      "status": "uncertain"
+      "status": "competitive"
     },
     "LM": {
       "aliases": [
@@ -6742,16 +6865,19 @@
         "Pres Magloire Cup",
         "Magloire Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 6,
       "name": "President Paul Magloire Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "MHC": {
       "aliases": [
@@ -6807,16 +6933,19 @@
         "Marjan Trophy",
         "Marjan Tr"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 3,
       "name": "Marjan Trophy",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "MKR": {
       "aliases": [
@@ -6824,16 +6953,19 @@
         "Mukuru Tourn",
         "Mukuru T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 2,
       "name": "Mukuru Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "MKS": {
       "aliases": [
@@ -6857,16 +6989,19 @@
       "aliases": [
         "Millenium Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 3,
       "name": "Millenium Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "MLN": {
       "aliases": [
@@ -7145,16 +7280,19 @@
         "November 7th Cup",
         "Nov 7th Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 7,
       "name": "November 7th Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "NAC": {
       "aliases": [
@@ -7195,16 +7333,19 @@
         "Nile Basin Tourn",
         "Nile Basin T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "Egyptian FA reporting: Nile Basin friendly tournament",
+        "source_url": "https://english.ahram.org.eg/News/3165.aspx"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 14,
       "name": "Nile Basin Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "NC": {
       "aliases": [
@@ -7293,31 +7434,37 @@
         "Al Nakba Cup",
         "Nakba Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Al Nakba Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "NKR": {
       "aliases": [
         "Nkrumah Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF: West African Soccer Federation championship",
+        "source_url": "https://www.rsssf.org/tablesn/nkrumah.html"
+      },
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 30,
       "name": "Nkrumah Cup",
-      "official_structure": false,
+      "official_structure": true,
       "operational_class": "competitive",
       "overrides": [],
-      "status": "uncertain"
+      "status": "competitive"
     },
     "NL": {
       "aliases": [
@@ -7532,16 +7679,19 @@
       "aliases": [
         "Navruz Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "AFC: Navruz Cup friendly tournament",
+        "source_url": "https://www.the-afc.com/en/more/international_friendlies/news/central_asian_trio_set_for_navruz_cup.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Navruz Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "NSM": {
       "aliases": [
@@ -7549,33 +7699,37 @@
         "Al-Nashama Tourn",
         "Al-Nashama T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "Jordan FA reporting: international friendly tournament",
+        "source_url": "https://www.jordanpulse.com/article/13199"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Al-Nashama Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "NTC": {
       "aliases": [
         "Nations Cup"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
       "confidence": "high",
       "evidence": {
-        "secondary_exact_title": "nations cup 1964 brazil"
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
       },
-      "evidence_type": "explicit_official_structure",
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 9,
       "name": "Nations Cup",
-      "official_structure": true,
-      "operational_class": "competitive",
+      "official_structure": false,
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "competitive"
+      "status": "friendly"
     },
     "NUQ": {
       "aliases": [
@@ -7675,16 +7829,19 @@
         "Challenger Cup",
         "Challenger C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 3,
       "name": "Outrigger Challenger Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "OCM": {
       "aliases": [
@@ -7937,16 +8094,19 @@
         "Optus World Series",
         "Optus Series"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 9,
       "name": "Optus World Series",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "OQ": {
       "aliases": [
@@ -8013,16 +8173,19 @@
         "Saudi Arabia FF Cup",
         "Saudi FF Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Saudi Arabia FF Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "OVC": {
       "aliases": [
@@ -8164,16 +8327,19 @@
       "aliases": [
         "Peace Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 19,
       "name": "Peace Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "PCF": {
       "aliases": [
@@ -8353,16 +8519,19 @@
         "Prime Min's C",
         "Pr Min's C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 28,
       "name": "Prime Minister's Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "PMG": {
       "aliases": [
@@ -8388,16 +8557,19 @@
         "Prime Min's Tr",
         "Pr Min's Tr"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 7,
       "name": "Prime Minister's Trophy",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "PNF": {
       "aliases": [
@@ -8476,16 +8648,19 @@
         "President's Cup",
         "President's C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 3,
       "name": "President's Cup Challenge",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "PRD": {
       "aliases": [
@@ -8527,16 +8702,19 @@
         "President's Cup",
         "President's C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 148,
       "name": "President's Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "PSC": {
       "aliases": [
@@ -8563,16 +8741,19 @@
         "P Stuyvesant Tr",
         "Stuyvesant Tr"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 9,
       "name": "Peter Stuyvesant Trophy",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "PTR": {
       "aliases": [
@@ -8721,16 +8902,16 @@
         "RCD Tournament",
         "RCD Tourn"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
+      "confidence": "high",
       "evidence": {},
-      "evidence_type": "unresolved",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 16,
       "name": "RCD Pact Tournament",
-      "official_structure": false,
+      "official_structure": true,
       "operational_class": "competitive",
       "overrides": [],
-      "status": "uncertain"
+      "status": "competitive"
     },
     "RCH": {
       "aliases": [
@@ -8842,16 +9023,19 @@
         "R Morales Cup",
         "R Morales C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 2,
       "name": "Ricardo Morales Aviles Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "RMD": {
       "aliases": [
@@ -9002,16 +9186,19 @@
         "Revolution Cup",
         "Revolution C"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 2,
       "name": "Revolution Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "RVT": {
       "aliases": [
@@ -9175,16 +9362,19 @@
         "S Arabia FF T",
         "S Arabia T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 3,
       "name": "Saudi Arabia FF Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "SBA": {
       "aliases": [
@@ -9192,16 +9382,19 @@
         "Saba Saba Tournament",
         "Saba Saba T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 6,
       "name": "Saba Saba Festival Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "SC": {
       "aliases": [
@@ -9589,16 +9782,19 @@
         "Slavic Tourn",
         "Slavic T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 2,
       "name": "Slavic Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "SM": {
       "aliases": [
@@ -9621,16 +9817,19 @@
       "aliases": [
         "Simba Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 18,
       "name": "Simba Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "SMC": {
       "aliases": [
@@ -9927,10 +10126,10 @@
         "Tr Caucasian Ch",
         "Caucasian Ch"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
       "confidence": "high",
       "evidence": {},
-      "evidence_type": "explicit_official_structure",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 15,
       "name": "Trans-Caucasian Championship",
       "official_structure": true,
@@ -10168,31 +10367,34 @@
       "aliases": [
         "Triangulaire"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
+      "confidence": "high",
       "evidence": {},
-      "evidence_type": "unresolved",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 48,
       "name": "Triangulaire",
-      "official_structure": false,
+      "official_structure": true,
       "operational_class": "competitive",
       "overrides": [],
-      "status": "uncertain"
+      "status": "competitive"
     },
     "TRP": {
       "aliases": [
         "Tropical Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 15,
       "name": "Tropical Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "TT": {
       "aliases": [
@@ -10301,16 +10503,19 @@
         "US Consulate T",
         "US Cons T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 15,
       "name": "US Consulate Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "UDC": {
       "aliases": [
@@ -10646,16 +10851,19 @@
         "Vietnam FF Cup",
         "VFF Cup"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 14,
       "name": "Vietnam FF Cup",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "VIC": {
       "aliases": [
@@ -10667,16 +10875,19 @@
         "Vietnam Natl Day",
         "Vietnam N Day"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
-      "evidence": {},
-      "evidence_type": "unresolved",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
+      "confidence": "high",
+      "evidence": {
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
+      },
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 62,
       "name": "South Vietnam National Day Tournament",
       "official_structure": false,
-      "operational_class": "competitive",
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "uncertain"
+      "status": "friendly"
     },
     "VLM": {
       "aliases": [
@@ -10703,10 +10914,10 @@
         "VIVA World C",
         "VIVA WC"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
       "confidence": "high",
       "evidence": {},
-      "evidence_type": "explicit_official_structure",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 3,
       "name": "VIVA World Cup",
       "official_structure": true,
@@ -10987,16 +11198,16 @@
         "Windward Isl T",
         "Windward I T"
       ],
-      "basis": "level-1 named event without decisive evidence",
-      "confidence": "low",
+      "basis": "Audited formal regional, federation or multi-sport competition with an official championship structure.",
+      "confidence": "high",
       "evidence": {},
-      "evidence_type": "unresolved",
+      "evidence_type": "other_tournament_audit_competitive",
       "historical_match_count": 135,
       "name": "Windward Islands Tournament",
-      "official_structure": false,
+      "official_structure": true,
       "operational_class": "competitive",
       "overrides": [],
-      "status": "uncertain"
+      "status": "competitive"
     },
     "WOQ": {
       "aliases": [
@@ -11356,18 +11567,19 @@
         "Western Union Ch",
         "W Union Ch"
       ],
-      "basis": "official championship/league/games structure",
+      "basis": "Audited invitational or friendly tournament without qualification, championship, promotion or relegation consequences.",
       "confidence": "high",
       "evidence": {
-        "secondary_exact_title": "western union championship 2000 british virgin islands"
+        "source_label": "RSSSF International Country Results – Friendly Tournaments",
+        "source_url": "https://www.rsssf.org/intland-friend.html"
       },
-      "evidence_type": "explicit_official_structure",
+      "evidence_type": "other_tournament_audit_friendly",
       "historical_match_count": 4,
       "name": "Western Union Championship",
-      "official_structure": true,
-      "operational_class": "competitive",
+      "official_structure": false,
+      "operational_class": "friendly",
       "overrides": [],
-      "status": "competitive"
+      "status": "friendly"
     },
     "WUS": {
       "aliases": [

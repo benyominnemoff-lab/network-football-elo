@@ -1,99 +1,65 @@
 {
-  "classification_change": {
-    "codes_reclassified": [
-      "IND",
-      "MRD"
-    ],
-    "evidence": [
-      {
-        "code": "IND",
-        "source": "RSSSF International Country Results \u2013 Friendly Tournaments",
-        "url": "https://www.rsssf.org/intland-friend.html"
-      },
-      {
-        "code": "MRD",
-        "source": "AFC International Friendlies \u2013 Merdeka Tournament",
-        "url": "https://www.the-afc.com/en/more/international_friendlies/news/malaysia_edge_lebanon_to_win_merdeka_tournament.html"
-      }
-    ],
-    "matches_reclassified": 859
-  },
+  "study": "full-sample friendly information ratio",
   "classification_policy": "evidence-backed friendly; uncertain operationally competitive",
-  "coefficient_only_previous_temperatures": {
-    "best": {
-      "accuracy": 0.591098480802,
-      "brier": 0.518755637878,
-      "log_loss": 0.881385291369,
-      "matches": 46801,
-      "ratio": 0.76064,
-      "rps": 0.172597290818
-    },
-    "previous_deployed_ratio": {
-      "accuracy": 0.591183949061,
-      "brier": 0.518759879833,
-      "log_loss": 0.881386008648,
-      "matches": 46801,
-      "ratio": 0.75185,
-      "rps": 0.172599054472
-    },
-    "temperatures": {
-      "competitive": 1.05583721825,
-      "friendly": 0.890607603114
-    }
+  "methodology_version": "2026-07-23-evidence-backed-friendly-0.78621",
+  "ledger": {
+    "matches": 52312,
+    "friendly_matches": 21529,
+    "competitive_matches": 30165,
+    "uncertain_matches": 618,
+    "scored_matches": 46801,
+    "scored_friendly_matches": 18546,
+    "score_first_year": 1960,
+    "score_last_date": "2026-07-11"
   },
-  "deployed_python_replay_cross_check": {
-    "accuracy": 0.5910343796072733,
-    "calibration_2026": {
-      "competitive_temperature": 1.0657158171573844,
-      "draw_log_tilt": 0.15086673239040566,
-      "friendly_temperature": 0.9157483856636819,
-      "nfelo_weight": 0.5424705022649909,
-      "training_first_year": 2018,
-      "training_last_year": 2025,
-      "training_matches": 7922
-    },
-    "final_layer_brier": 0.5182033193463322,
-    "final_layer_log_loss": 0.8800651979728462,
-    "final_layer_rps": 0.17245382282339197,
-    "matches": 46801,
-    "network_only_log_loss": 0.8814272526733231
-  },
-  "input_commit": "13eaaa3ceb57c5d5f0a0bb2fe262a4e929d62fd2",
-  "interpretation": {
-    "primary_number": 0.76064,
-    "reason": "The two Independence Tournament source codes are supported as friendly tournaments and the coefficient and class temperatures were jointly refitted on the revised classification."
+  "other_tournaments_review": {
+    "source_codes": 88,
+    "friendly_codes": 72,
+    "competitive_codes": 16,
+    "new_friendly_matches": 841,
+    "friendly_matches_after_audit": 21529,
+    "competitive_matches_after_audit": 30165,
+    "uncertain_matches_after_audit": 618
   },
   "joint_refit": {
     "best": {
-      "accuracy": 0.591098480802,
-      "brier": 0.518758489316,
-      "competitive_temperature": 1.06004260619,
-      "friendly_matches": 17724,
-      "friendly_temperature": 0.890357703717,
-      "log_loss": 0.881383694951,
+      "accuracy": 0.5909916454776607,
+      "brier": 0.5188039782621054,
+      "competitive_temperature": 1.061356232973167,
+      "friendly_matches": 18546,
+      "friendly_temperature": 0.8962949914792213,
+      "log_loss": 0.8814751458501191,
+      "matches": 46801,
+      "ratio": 0.78621,
+      "rps": 0.17261426245485592
+    },
+    "previous_deployed_ratio": {
+      "accuracy": 0.5909702784128544,
+      "brier": 0.5188171887932028,
+      "competitive_temperature": 1.0614100830809954,
+      "friendly_temperature": 0.8963104790698693,
+      "log_loss": 0.8814781669580547,
       "matches": 46801,
       "ratio": 0.76064,
-      "rps": 0.172597463088
+      "rps": 0.17261990129958893
     },
-    "log_loss_improvement": 7.191269999484717e-07,
-    "previous_deployed_ratio": {
-      "accuracy": 0.591162581996,
-      "brier": 0.518762723619,
-      "competitive_temperature": 1.06003938124,
-      "friendly_temperature": 0.890335396628,
-      "log_loss": 0.881384414078,
-      "matches": 46801,
-      "ratio": 0.75185,
-      "rps": 0.172599228728
+    "log_loss_improvement": 3.021107935596845e-06
+  },
+  "deployed_python_replay_cross_check": {
+    "matches": 46801,
+    "final_layer_log_loss": 0.88017173,
+    "network_only_log_loss": 0.88151934,
+    "final_layer_brier": 0.5182677,
+    "final_layer_rps": 0.1724807,
+    "accuracy": 0.59086344,
+    "calibration_2026": {
+      "training_first_year": 2018,
+      "training_last_year": 2025,
+      "training_matches": 7922,
+      "draw_log_tilt": 0.15103059,
+      "friendly_temperature": 0.9106569,
+      "competitive_temperature": 1.07015486,
+      "nfelo_weight": 0.5475183
     }
-  },
-  "ledger": {
-    "friendly_matches": 20688,
-    "matches": 52312,
-    "score_first_year": 1960,
-    "score_last_date": "2026-07-11",
-    "scored_friendly_matches": 17724,
-    "scored_matches": 46801
-  },
-  "study": "full-sample friendly information ratio"
+  }
 }

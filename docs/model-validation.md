@@ -36,9 +36,9 @@ dataset named by the original report were never committed. The aggregate
 result and hashes survive, but the selection cannot presently be reconstructed
 bit-for-bit.
 
-## Independent methodology audit
+## Method selection and structural checks
 
-The 19 July 2026 audit reconstructed the deployed chronology and ran more than
+The structural review reconstructed the chronology and ran more than
 7,000 additional fold fits or full-history replays. Its main conclusions were:
 
 - retain full opponent covariance;
@@ -53,7 +53,7 @@ The 19 July 2026 audit reconstructed the deployed chronology and ran more than
 - reconcile the exact-score matrix with final W/D/L; and
 - begin an immutable prospective forecast record.
 
-The audit did not support Dixon–Coles when log loss remained primary, a new
+The evidence did not support Dixon–Coles when log loss remained primary, a new
 global core fit, different competitive update ratios, or a retrospective
 replacement of the existing score-state release schedule.
 
@@ -64,23 +64,23 @@ level. A three-state registry classifies tournaments as friendly, competitive
 or uncertain. Only positive friendly evidence receives the reduced information
 ratio; uncertain and unknown competitions are operationally competitive.
 
-The historical map contains 20,688 friendly matches, 29,910 competitive
-matches and 1,714 uncertain matches. The Independence Tournament and Merdeka
-Tournament source codes are included as friendlies using the international
-friendly-tournament archive and AFC classification evidence.
+The historical map contains 21,529 friendly matches, 30,165 competitive
+matches and 618 uncertain matches. The fallback Other tournaments category has
+been reviewed code by code: 72 source codes are friendly invitationals or
+preparation events, while 16 are formal competitions.
 
 The full 52,312-match replay scored 46,801 forecasts from 1960 through
 11 July 2026. Joint fitting selected:
 
 | Parameter | Value |
 | --- | ---: |
-| Friendly information ratio | 0.76064 |
-| Friendly network temperature | 0.890357703717 |
-| Competitive network temperature | 1.060042606190 |
+| Friendly information ratio | 0.78621 |
+| Friendly network temperature | 0.896294991479 |
+| Competitive network temperature | 1.061356232973 |
 
-Network-only retrospective log loss was 0.881383694951. At the previously
-deployed ratio of 0.75185, with temperatures refitted under the same
-classification, it was 0.881384414078.
+Network-only retrospective log loss is 0.881475145850. At the previous ratio
+of 0.76064, with temperatures refitted under the same classification, it is
+0.881478166958.
 
 This is a full-sample retrospective fit. It is reproducible to the fixed ledger
 and objective, but it is not a new nested out-of-period result. The original
@@ -89,7 +89,7 @@ systems.
 
 ### Core ablations
 
-| Audit change from the deployed network | Log-loss difference | 95% paired interval |
+| Ablation | Log-loss difference | 95% paired interval |
 | --- | ---: | ---: |
 | Diagonal covariance | +0.005430 | +0.004108 to +0.006928 |
 | No goal-margin information | +0.002388 | +0.000927 to +0.003665 |
@@ -128,7 +128,7 @@ safe fraction instead.
 | Full reversion | 0.880693 | 0.518495 | 59.125% |
 | Boundary gate | **0.880660** | **0.518474** | 59.125% |
 
-Under the audit's strict-date implementation, the boundary-minus-reversion
+Under the strict-date implementation, the boundary-minus-reversion
 log-loss interval was −0.000083 to −0.000001 while every top pick remained
 identical.
 
@@ -150,16 +150,19 @@ and constants, the Python replay produces:
 
 | Diagnostic | Value |
 | --- | ---: |
-| Final-layer log loss | 0.880065 |
-| Network-only log loss | 0.881427 |
-| Final-layer Brier score | 0.518203 |
-| Final-layer ranked probability score | 0.172454 |
-| Most-likely outcome correct | 59.103% |
+| Final-layer log loss | 0.880172 |
+| Network-only log loss | 0.881519 |
+| Final-layer Brier score | 0.518268 |
+| Final-layer ranked probability score | 0.172481 |
+| Most-likely outcome correct | 59.086% |
 | Matches | 46,801 |
 
-The 2026 annual calibration uses 7,922 matches from 2018–2025 and produces
-draw log tilt 0.150867, friendly calibration power 0.915748, competitive
-calibration power 1.065716 and network pool weight 0.542471.
+The annual calibration uses 7,922 matches from
+2018–2025 and
+produces draw log tilt 0.151031, friendly calibration
+power 0.910657, competitive calibration power
+1.070155 and network pool weight
+0.547518.
 
 These constants and calibrations use information extending beyond parts of the
 replay window. The figures diagnose the published chronology and verify the
@@ -168,7 +171,7 @@ implementation; they are not nested out-of-sample estimates and do not replace
 
 ## Why one public rating was preserved
 
-The audit found that latent posterior-mean gaps were better short-horizon
+Latent posterior-mean gaps were better short-horizon
 prediction inputs than the public evidence-adjusted gaps: 0.891291 versus
 0.897179 log loss over 43,076 eligible matches. That answers a prediction
 question, not the full product question of comparing teams across weakly
